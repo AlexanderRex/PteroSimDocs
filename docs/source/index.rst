@@ -1,13 +1,9 @@
-Welcome to Lumache's documentation!
-===================================
+Welcome to PteroSim Documentation
+==================================
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
-
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+**PteroSim** is a high-fidelity UAV flight simulator built on Unreal Engine 5,
+integrating JSBSim for physics, Cesium for geospatial tiles, and optional
+PX4/MavLink for autonomous missions.
 
 .. note::
 
@@ -17,6 +13,9 @@ Contents
 --------
 
 .. toctree::
+   :maxdepth: 2
 
-   usage
-   api
+   description
+   prerequisites
+   installation
+   python_sdk
