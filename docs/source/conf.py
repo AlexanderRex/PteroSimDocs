@@ -6,8 +6,8 @@ project = 'PteroSim'
 copyright = '2024, AlexanderRex'
 author = 'AlexanderRex'
 
-release = '0.1'
-version = '0.1.0'
+release = ''
+version = ''
 
 # -- General configuration
 

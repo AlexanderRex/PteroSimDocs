@@ -16,16 +16,12 @@ Simulation control
 
 ``sim.stop()`` — Stop simulation.
 
----
-
 Simulation status
 -----------------
 
 ``sim.status()`` — Returns simulation run state, time scale, physics frequency, and aircraft count.
 
 ``sim.clock()`` — Returns clock state, sim time, step number, frequency, and time scale.
-
----
 
 Simulation settings
 -------------------
@@ -38,8 +34,6 @@ Simulation settings
 
 ``sim.get_mavlink_bind_address()`` — Returns current MAVLink bind address.
 
----
-
 Aircraft management
 -------------------
 
@@ -50,4 +44,3 @@ Aircraft management
 ``sim.aircraft_status()`` — Returns status of all spawned aircraft.
 
 ``drone.remove()`` — Removes the aircraft and returns remaining count.
-
