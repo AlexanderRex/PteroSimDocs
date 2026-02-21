@@ -1,40 +1,69 @@
 Installation
 ============
 
-1. Clone repository with submodules:
+This guide covers building PteroSim from source. Ensure all :doc:`prerequisites` are installed before proceeding.
 
-   .. code-block:: bash
+---
 
-      git clone --recursive git@github.com:AlexanderRex/PteroSim.git
+Clone the repository
+--------------------
 
-   If already cloned without ``--recursive``:
+Clone with submodules to get all plugin dependencies:
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      git submodule update --init --recursive
+   git clone --recursive git@github.com:AlexanderRex/PteroSim.git
 
-2. Build JSBSim (run from ``devops_data``, e.g. in PowerShell):
+If already cloned without ``--recursive``, initialize submodules manually:
 
-   .. code-block:: bash
+.. code-block:: bash
 
-      cd devops_data
-      ./build-jsbsim.bat
-      cd ..
+   git submodule update --init --recursive
 
-3. Right-click ``PteroSim.uproject`` → **Generate Visual Studio project files**
+---
 
-4. Open ``PteroSim.sln`` in Visual Studio 2022
+Build JSBSim
+------------
 
-5. Set build configuration to **Development Editor**
+Run the build script from the ``devops_data`` directory:
 
-6. Build the solution (Ctrl+Shift+B)
+.. code-block:: bash
 
-7. Launch the editor from Visual Studio or double-click ``PteroSim.uproject``
+   cd devops_data
+   ./build-jsbsim.bat
+   cd ..
 
-8. Install PteroSim Python SDK (optional, for gRPC scripting):
+---
 
-   .. code-block:: bash
+Generate project files
+----------------------
 
-      cd Plugins/PteroSimScripting/SDK/python
-      pip install -e .
-      cd -
+Right-click ``PteroSim.uproject`` and select **Generate Visual Studio project files**.
+
+---
+
+Build the project
+-----------------
+
+1. Open ``PteroSim.sln`` in Visual Studio 2022.
+2. Set build configuration to **Development Editor**.
+3. Build the solution (Ctrl+Shift+B).
+
+---
+
+Launch the editor
+-----------------
+
+Run from Visual Studio or double-click ``PteroSim.uproject``.
+
+---
+
+Install Python SDK (optional)
+-----------------------------
+
+For gRPC scripting support, install the SDK package:
+
+.. code-block:: bash
+
+   cd Plugins/PteroSimScripting/SDK/python
+   pip install -e .
