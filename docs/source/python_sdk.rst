@@ -3,12 +3,6 @@ Python SDK
 
 The PteroSim Python SDK provides gRPC-based programmatic control of the simulation. Commands are executed in a Python console or script.
 
-**SDK location:** ``Plugins/PteroSimScripting/SDK/python/``
-
-**Example script:** ``scripts/sim_control/test_sdk.py``
-
----
-
 Simulation control
 ------------------
 
@@ -57,13 +51,3 @@ Aircraft management
 
 ``drone.remove()`` — Removes the aircraft and returns remaining count.
 
----
-
-Quick test
-----------
-
-Run all 15 RPCs with the test script:
-
-.. code-block:: bash
-
-   python scripts/sim_control/test_sdk.py
