@@ -1,18 +1,6 @@
 Getting Started
 ===============
 
-Requirements
-------------
-
-* Python 3.10 or higher
-* pip 22.2 or higher
-
-Setup
------
-
-1. Download PteroSim
-2. Launch ``PteroSim.exe``
-
 System requirements
 -------------------
 
@@ -31,3 +19,30 @@ System requirements
 * RAM: 32 GB
 * GPU: NVIDIA RTX 3070 Ti / RTX 4070 Ti or equivalent, 12+ GB VRAM
 * Storage: 10 GB free space (SSD recommended)
+
+Software requirements
+---------------------
+
+**Required:**
+
+* Python 3.10 or higher
+* pip 22.2 or higher
+
+**Optional (required for autopilot features):**
+
+* PX4
+* QGroundControl
+* ArduPilot
+
+Setup
+-----
+
+1. Download PteroSim
+
+**Windows:**
+
+2. Launch ``PteroSim.exe``
+
+**Linux:**
+
+2. Launch ``PteroSim.sh``

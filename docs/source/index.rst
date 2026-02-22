@@ -10,16 +10,16 @@ Welcome to the PteroSim documentation.
 Getting Started
 ---------------
 
-:doc:`getting_started` — Download and launch PteroSim.
+:doc:`getting_started` — System requirements, software requirements, and setup instructions.
 
-PteroSim SDK
-------------
+Python API
+----------
 
-:doc:`python_sdk` — Python SDK commands for programmatic simulation control.
+:doc:`python_api` — Python API commands for programmatic simulation control.
 
 .. toctree::
    :maxdepth: 1
    :hidden:
 
    getting_started
-   python_sdk
+   python_api
