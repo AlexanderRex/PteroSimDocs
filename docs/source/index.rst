@@ -1,22 +1,25 @@
-Welcome to Lumache's documentation!
-===================================
+PteroSim Documentation
+======================
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
-
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+Welcome to the PteroSim documentation.
 
 .. note::
 
    This project is under active development.
 
-Contents
---------
+Getting Started
+---------------
+
+:doc:`getting_started` — System requirements, software requirements, and setup instructions.
+
+Python API
+----------
+
+:doc:`python_api` — Python API commands for programmatic simulation control.
 
 .. toctree::
+   :maxdepth: 1
+   :hidden:
 
-   usage
-   api
+   getting_started
+   python_api
