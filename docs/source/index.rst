@@ -12,6 +12,11 @@ Getting Started
 
 :doc:`getting_started` — System requirements, software requirements, and setup instructions.
 
+First Steps
+-----------
+
+:doc:`first_steps` — Basic spawning workflow for aircraft and payloads.
+
 Python API
 ----------
 
@@ -22,4 +27,5 @@ Python API
    :hidden:
 
    getting_started
+   first_steps
    python_api
