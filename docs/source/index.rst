@@ -3,6 +3,11 @@ PteroSim Documentation
 
 Welcome to the PteroSim documentation.
 
+.. image:: Images/pterosim_hero.png
+   :alt: PteroSim F450 quadcopter
+   :align: center
+   :width: 100%
+
 .. note::
 
    This project is under active development.
