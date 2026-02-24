@@ -16,16 +16,15 @@ Aircraft grid
 
 Each aircraft card has controls of the form ``1 x 1`` and a **Dist** field:
 
-* **1 × 1** — how many aircraft to spawn along each side of a rectangular grid  
-  (for example, ``3 x 2`` spawns 3 × 2 = 6 aircraft).
-* **Dist** — side length of the grid in meters, i.e. spacing between neighboring spawn points.
+* **1 × 1** — how many aircraft to spawn along each side of the grid.
+* **Dist** — side length of the grid in meters.
 
 Aircraft types
 --------------
 
-* **F450Aircraft** — quadcopter with four rotors (classic multirotor).\n
-* **DeltaQuadAircraft** — VTOL with four vertical lift rotors and one rear-facing cruise propeller.\n
-* **Cessna172Aircraft** — single-engine propeller airplane (fixed-wing).
+* **F450Aircraft** — four rotor drone.
+* **DeltaQuadAircraft** — VTOL with four vertical lift rotors and one rear-facing propeller.
+* **Cessna172Aircraft** — fixed-wing airplane.
 
 Payloads
 --------
