@@ -68,6 +68,3 @@ Taking Flight
       :align: center
 
    Once connected, you can use the Plan view to create missions with waypoints, takeoff and landing commands, and other actions.
-
-For script-driven control and RL scenarios, continue with :doc:`python_examples`.
-

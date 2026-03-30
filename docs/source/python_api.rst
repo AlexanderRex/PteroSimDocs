@@ -7,10 +7,6 @@ This reference covers the PteroSim Python SDK.
    :local:
    :depth: 2
 
-.. note::
-
-   For end-to-end script workflows (train/play modes, checkpoints, TensorBoard), see :doc:`python_examples`.
-
 pterosim.PteroSim
 -----------------
 
@@ -398,8 +394,3 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    # Episode reset
    sim.reset_race(drone.instance_id)
-
-See also
-^^^^^^^^
-
-* :doc:`python_examples` — practical runbooks for ``run_rl_hover_train.py``, ``run_rl_race_train.py``, and ``test_pid_hover.py``.

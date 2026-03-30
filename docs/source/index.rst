@@ -27,11 +27,6 @@ Python API
 
 :doc:`python_api` — Python API commands for programmatic simulation control.
 
-Python Examples
----------------
-
-:doc:`python_examples` — Practical script-oriented examples (RL training, play mode, PID smoke test).
-
 .. toctree::
    :maxdepth: 1
    :hidden:
@@ -39,4 +34,3 @@ Python Examples
    getting_started
    first_steps
    python_api
-   python_examples
