@@ -33,6 +33,7 @@ Software requirements
 * `PX4 <https://docs.px4.io/main/en/dev_setup/dev_env_linux_ubuntu>`_
 * `QGroundControl <https://qgroundcontrol.com/>`_
 * `ArduPilot <https://ardupilot.org/ardupilot>`_
+* RL stack for example scripts: ``numpy``, ``gymnasium``, ``stable-baselines3``, ``torch``, ``tensorboard``
 
 Setup
 -----
@@ -46,3 +47,10 @@ Setup
 **Linux:**
 
 2. Launch ``PteroSim.sh``
+
+Next docs to read
+-----------------
+
+* :doc:`first_steps` for manual spawn/QGroundControl workflow.
+* :doc:`python_api` for SDK reference.
+* :doc:`python_examples` for script-based train/play examples.
