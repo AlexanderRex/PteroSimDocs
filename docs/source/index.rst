@@ -26,6 +26,7 @@ Python API
 ----------
 
 :doc:`python_api` — Python API commands for programmatic simulation control.
+For ready-to-run usage examples, see `PteroSimScripts on GitHub <https://github.com/AlexanderRex/PteroSimScripts>`_.
 
 .. toctree::
    :maxdepth: 1
