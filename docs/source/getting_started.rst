@@ -28,11 +28,16 @@ Software requirements
 * `Python 3.10 or higher <https://www.python.org/downloads/>`_
 * `pip 22.2 or higher <https://pip.pypa.io/en/stable/installation/>`_
 
+**From source (developer build):**
+
+* `Unreal Engine 5.6 <https://www.unrealengine.com/en-US/unreal-engine-5>`_ (matches the upstream PteroSim project)
+
 **Optional (required for autopilot features):**
 
 * `PX4 <https://docs.px4.io/main/en/dev_setup/dev_env_linux_ubuntu>`_
 * `QGroundControl <https://qgroundcontrol.com/>`_
 * `ArduPilot <https://ardupilot.org/ardupilot>`_
+* `Mission Planner <https://ardupilot.org/planner/docs/mission-planner-installation.html>`_
 
 Setup
 -----
