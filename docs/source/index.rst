@@ -5,7 +5,7 @@ Welcome to the PteroSim documentation.
 
 .. image:: Images/pterosim_hero.png
    :alt: PteroSim F450 quadcopter
-   :align: center
+   :align: left
    :width: 100%
 
 .. note::
@@ -22,6 +22,12 @@ First Steps
 
 :doc:`first_steps` — Basic spawning workflow for aircraft and payloads.
 
+SITL Simulation
+---------------
+
+:doc:`sitl_simulation_px4` — PX4 SITL workflow with QGroundControl.
+:doc:`sitl_simulation_ardupilot` — ArduPilot SITL workflow with Mission Planner.
+
 Python API
 ----------
 
@@ -34,4 +40,6 @@ For ready-to-run usage examples, see `PteroSimScripts on GitHub <https://github.
 
    getting_started
    first_steps
+   sitl_simulation_px4
+   sitl_simulation_ardupilot
    python_api
