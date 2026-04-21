@@ -9,7 +9,7 @@ Clicking it opens the aircraft and payload spawn panel:
 
 .. image:: Images/spawn_panel.png
    :alt: Aircraft and payload spawn panel
-   :align: left
+   :class: no-float-left
 
 Simulation controls
 -------------------
@@ -37,10 +37,3 @@ Payloads
 * **BasePayload** spawns a cargo box with configurable **Mass (kg)**.  
   Aircraft equipped with a gripper can lift this box and use it as a payload in scenarios.
 
-SITL simulation
----------------
-
-For autopilot integrations, see separate guides:
-
-* :doc:`sitl_simulation_px4` — PX4 SITL workflow with QGroundControl.
-* :doc:`sitl_simulation_ardupilot` — ArduPilot SITL workflow with Mission Planner.

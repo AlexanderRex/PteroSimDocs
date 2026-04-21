@@ -23,10 +23,6 @@ SITL simulation with ArduPilot
       :alt: Mission Planner map right-click mission menu
       :align: left
 
-   .. image:: Images/ardupilot_plan_waypoint_table.png
-      :alt: Mission Planner waypoint table editor
-      :align: left
-
 5. Click **Write** on the panel on the right side of the screen to upload the mission:
 
    .. image:: Images/ardupilot_plan_write_panel.png

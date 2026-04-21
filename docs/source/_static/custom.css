@@ -1,0 +1,6 @@
+.rst-content img.no-float-left {
+    float: none !important;
+    display: block;
+    margin-left: 0;
+    margin-right: auto;
+}
