@@ -24,10 +24,30 @@ SITL simulation with PX4
       :alt: QGroundControl communication link configuration
       :align: left
 
+   .. image:: Images/qgc_comm_link_edit.png
+      :alt: QGroundControl comm link edit window with server address
+      :align: left
+
 5. Manually connect using the configured link:
 
    .. image:: Images/qgc_connect_link.png
       :alt: QGroundControl select link to connect
       :align: left
 
-   After the link is online, use **Plan** / **Fly** as with normal SITL.
+6. Head to **Plan Flight**:
+
+   .. image:: Images/qgc_plan_flight.png
+      :alt: QGroundControl main screen with Plan Flight highlighted
+      :align: left
+
+7. Create flight plan using options on the pannel on the left of the screen and press Upload button to upload the plan.
+
+   .. image:: Images/qgc_plan_upload.png
+      :alt: QGroundControl plan editor and Upload button
+      :align: left
+
+8. Exit planning mode and use the takeoff slider.
+
+   .. image:: Images/qgc_takeoff_slider.png
+      :alt: QGroundControl takeoff slider prompt
+      :align: left
