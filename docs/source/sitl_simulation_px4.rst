@@ -10,9 +10,7 @@ SITL simulation with PX4
 
       PX4_SIM_HOSTNAME=[IP-address] PX4_LOCKSTEP=1 PX4_SIM_SPEED_FACTOR=1 make px4_sitl none_iris
 
-   The PteroSim repo also ships helpers that set the same environment and launch ``px4`` with per-instance rootfs: ``scripts/px4_launch/run_instance.sh [instance] [model]`` and ``scripts/px4_launch/run_multiple_instances.sh`` (defaults: ``none_iris``, TCP **4560+N**, system id **N+1** - see script echo output).
-
-3. Open **Application Settings**:
+   3. Launch **QGroundControl** and open **Application Settings**:
 
    .. image:: Images/qgc_main_menu.png
       :alt: QGroundControl main menu and Application Settings

@@ -17,6 +17,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
+    'sphinxcontrib.lightbox2',
 ]
 
 intersphinx_mapping = {
