@@ -4,21 +4,20 @@ Getting Started
 System requirements
 -------------------
 
-**Minimum:**
-
-* OS: Windows 10 64-bit (version 1909+) or Windows 11
-* CPU: Quad-core Intel or AMD, 2.5 GHz or faster
-* RAM: 16 GB
-* GPU: DirectX 11/12-compatible, 8 GB VRAM
-* Storage: 10 GB free space
-
-**Recommended:**
-
-* OS: Windows 11
-* CPU: 6-core Intel Core i5-12600K / AMD Ryzen 5 5600X or better
-* RAM: 32 GB
-* GPU: NVIDIA RTX 3070 Ti / RTX 4070 Ti or equivalent, 12+ GB VRAM
-* Storage: 10 GB free space (SSD recommended)
++---------+--------------------------------+-----------------------------+
+|         | Minimum                        | Recommended                 |
++=========+================================+=============================+
+| OS      | Windows 10 64-bit / Ubuntu     | Windows 11 / Ubuntu 24.04  |
+|         | 22.04                          |                             |
++---------+--------------------------------+-----------------------------+
+| CPU     | Quad-core, 2.5 GHz             | 6+ cores, 3.0+ GHz          |
++---------+--------------------------------+-----------------------------+
+| RAM     | 8 GB                           | 16 GB                       |
++---------+--------------------------------+-----------------------------+
+| GPU     | GTX 770 / RX 570               | RTX 2070+ / RX 5700+        |
++---------+--------------------------------+-----------------------------+
+| Storage | 5 GB                           | 10 GB SSD                   |
++---------+--------------------------------+-----------------------------+
 
 Software requirements
 ---------------------
@@ -27,10 +26,6 @@ Software requirements
 
 * `Python 3.10 or higher <https://www.python.org/downloads/>`_
 * `pip 22.2 or higher <https://pip.pypa.io/en/stable/installation/>`_
-
-**From source (developer build):**
-
-* `Unreal Engine 5.6 <https://www.unrealengine.com/en-US/unreal-engine-5>`_ (matches the upstream PteroSim project)
 
 **Optional (required for autopilot features):**
 
