@@ -6,19 +6,19 @@ System requirements
 
 **Minimum:**
 
-* OS: Windows 10 64-bit (version 1909+) or Windows 11
-* CPU: Quad-core Intel or AMD, 2.5 GHz or faster
-* RAM: 16 GB
-* GPU: DirectX 11/12-compatible, 8 GB VRAM
-* Storage: 10 GB free space
+* OS: Windows 10 64-bit / Ubuntu 22.04
+* CPU: Quad-core, 2.5 GHz
+* RAM: 8 GB
+* GPU: GTX 770 / RX 570
+* Storage: 5 GB
 
 **Recommended:**
 
-* OS: Windows 11
-* CPU: 6-core Intel Core i5-12600K / AMD Ryzen 5 5600X or better
-* RAM: 32 GB
-* GPU: NVIDIA RTX 3070 Ti / RTX 4070 Ti or equivalent, 12+ GB VRAM
-* Storage: 10 GB free space (SSD recommended)
+* OS: Windows 11 / Ubuntu 24.04
+* CPU: 6+ cores, 3.0+ GHz
+* RAM: 16 GB
+* GPU: RTX 2070+ / RX 5700+
+* Storage: 10 GB SSD
 
 Software requirements
 ---------------------
@@ -33,6 +33,7 @@ Software requirements
 * `PX4 <https://docs.px4.io/main/en/dev_setup/dev_env_linux_ubuntu>`_
 * `QGroundControl <https://qgroundcontrol.com/>`_
 * `ArduPilot <https://ardupilot.org/ardupilot>`_
+* `Mission Planner <https://ardupilot.org/planner/docs/mission-planner-installation.html>`_
 
 Setup
 -----
