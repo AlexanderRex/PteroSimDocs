@@ -37,3 +37,30 @@ Payloads
 * **BasePayload** spawns a cargo box with configurable **Mass (kg)**.  
   Aircraft equipped with a gripper can lift this box and use it as a payload in scenarios.
 
+
+Taking Flight
+-------------
+
+Manual Control
+^^^^^^^^^^^^^^
+
+Use these keys for manual flight control:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Command
+     - Key Shortcut
+   * - Take off
+     - ``Space``
+   * - Descend
+     - ``Ctrl``
+   * - Move forward / backward
+     - ``W`` / ``S``
+   * - Move left / right
+     - ``A`` / ``D``
+   * - Yaw left / right
+     - ``Q`` / ``E``
+   * - Pick up or release payload
+     - ``G``
+
