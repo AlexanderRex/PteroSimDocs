@@ -16,7 +16,7 @@ Simulation controls
 
 * Use Start/Pause and Stop buttons to control the simulation state.
 * Use Time Scale, Physics Hz, Weather, Wind kts and Dir windows to control phyiscal atributes of the simulation.
-
+* Panel to the right lists all existing aircraft and payloads and can be used to change control sources for aircraft; it is open by default.
 
 Aircraft grid
 -------------
