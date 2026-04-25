@@ -44,7 +44,7 @@ Taking Flight
 Manual Control
 ^^^^^^^^^^^^^^
 
-Use these keys for manual flight control:
+* Use these keys for manual flight control:
 
 .. list-table::
    :header-rows: 1
@@ -63,4 +63,8 @@ Use these keys for manual flight control:
      - ``Q`` / ``E``
    * - Pick up or release payload
      - ``G``
+* For different control sources, use the panel to the right of the screen.
 
+.. image:: Images/control_source_panel.png
+   :alt: Right-side panel with aircraft control source selector
+   :class: no-float-left
