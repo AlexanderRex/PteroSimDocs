@@ -4,7 +4,7 @@ SITL simulation with ArduPilot
 1. **Start** PteroSim and spawn the F450 drone.
    For ArduPilot, it is recommended to set Physics Hz to **1000** with the top slider.
 
-2. On Ubuntu/WSL, head to ArduPilot folder and launch ArduPilot SITL while putting your **Ubuntu IP address** in ``JSON:[IP-address]``:
+2. In the control source panel choose **ArduPilot**. On Ubuntu/WSL, head to ArduPilot folder and launch ArduPilot SITL while putting your **Ubuntu IP address** in ``JSON:[IP-address]``:
 
    .. code-block:: bash
 

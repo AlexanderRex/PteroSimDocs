@@ -4,7 +4,7 @@ SITL simulation with PX4
 
 1. **Start PteroSim**, press **Start** on the simulation panel, and spawn the aircraft (e.g. F450). You may start PX4 before or after; lockstep engages once PX4 connects.
 
-2. **Run PX4 SITL** on Linux/WSL with lockstep and put your **Ubuntu IP address** in ``[IP-address]``:
+2. In the control source panel choose **PX4**. **Run PX4 SITL** on Linux/WSL with lockstep and put your **Ubuntu IP address** in ``[IP-address]``:
 
    .. code-block:: bash
 
