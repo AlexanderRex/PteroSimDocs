@@ -8,7 +8,7 @@ SITL simulation with PX4
 
    .. image:: Images/control_source_px4.png
       :alt: Control Source panel with PX4 selected
-      :align: left
+      :class: no-float-left
 
 3. **Run PX4 SITL** on Linux/WSL with lockstep and put your **Ubuntu IP address** in ``[IP-address]``:
 

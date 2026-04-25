@@ -8,7 +8,7 @@ SITL simulation with ArduPilot
 
    .. image:: Images/control_source_ardupilot.png
       :alt: Control Source panel with ArduPilot selected
-      :align: left
+      :class: no-float-left
 
 3. On Ubuntu/WSL, head to ArduPilot folder and launch ArduPilot SITL while putting your **Ubuntu IP address** in ``JSON:[IP-address]``:
 
