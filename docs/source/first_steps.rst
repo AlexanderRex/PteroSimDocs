@@ -38,11 +38,8 @@ Payloads
   Aircraft equipped with a gripper can lift this box and use it as a payload in scenarios.
 
 
-Taking Flight
--------------
-
 Manual Control
-^^^^^^^^^^^^^^
+--------------
 
 * Use these keys for manual flight control:
 
