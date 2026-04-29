@@ -16,7 +16,7 @@ Simulation controls
 
 * Use Start/Pause and Stop buttons to control the simulation state.
 * Use Time Scale, Physics Hz, Weather, Wind kts and Dir windows to control phyiscal atributes of the simulation.
-
+* Panel to the right lists all existing aircraft and payloads and can be used to change control sources for aircraft; it is open by default.
 
 Aircraft grid
 -------------
@@ -38,13 +38,10 @@ Payloads
   Aircraft equipped with a gripper can lift this box and use it as a payload in scenarios.
 
 
-Taking Flight
--------------
-
 Manual Control
-^^^^^^^^^^^^^^
+--------------
 
-Use these keys for manual flight control:
+* Use these keys for manual flight control:
 
 .. list-table::
    :header-rows: 1
@@ -63,4 +60,8 @@ Use these keys for manual flight control:
      - ``Q`` / ``E``
    * - Pick up or release payload
      - ``G``
+* For different control sources, use the panel to the right of the screen.
 
+.. image:: Images/control_source_panel.png
+   :alt: Right-side panel with aircraft control source selector
+   :class: no-float-left
