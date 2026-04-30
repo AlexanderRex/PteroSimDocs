@@ -11,6 +11,10 @@ Clicking it opens the aircraft and payload spawn panel:
    :alt: Aircraft and payload spawn panel
    :class: no-float-left
 
+Spawn Aircraft
+--------------
+On the spawn panel, press and hold the cursor on your target aircraft, then drag it into the scene.
+
 Simulation controls
 -------------------
 
@@ -48,6 +52,8 @@ Manual Control
 
    * - Command
      - Key Shortcut
+   * - Possess/unpossess aircraft
+     - ``P`` / ``Esc``
    * - Take off
      - ``Space``
    * - Descend
