@@ -48,6 +48,8 @@ Manual Control
 
    * - Command
      - Key Shortcut
+   * - Possess/unpossess aircraft
+     - ``P`` / ``Esc``
    * - Take off
      - ``Space``
    * - Descend
