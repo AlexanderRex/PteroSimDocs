@@ -45,7 +45,7 @@ Payloads
 Manual Control
 --------------
 
-* Use these keys for manual flight control:
+* Use the following keys for manual flight control. Possessing the aircraft is required for manual control.
 
 .. list-table::
    :header-rows: 1
