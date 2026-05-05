@@ -1,8 +1,7 @@
 First Steps
 ===========
 
-Open the Spawn panel
---------------------
+1. Open the Spawn panel
 
 After launching PteroSim, find the **Spawn** button in the lower-left corner of the screen.  
 Clicking it opens the aircraft and payload spawn panel:
@@ -11,43 +10,23 @@ Clicking it opens the aircraft and payload spawn panel:
    :alt: Aircraft and payload spawn panel
    :class: no-float-left
 
-Simulation controls
--------------------
+2. On the spawn panel, press and hold the cursor on your target aircraft, then drag it into the scene. Spawning is only possible when the simulation is stopped.
 
-* Use Start/Pause and Stop buttons to control the simulation state.
-* Use Time Scale, Physics Hz, Weather, Wind kts and Dir windows to control phyiscal atributes of the simulation.
-* Panel to the right lists all existing aircraft and payloads and can be used to change control sources for aircraft; it is open by default.
+3. Press **Start** button to start the simulation.
 
-Aircraft grid
--------------
+4. On the panel to the right, choose manual control source for the aircraft.
 
-Each aircraft card has controls of the form ``1 x 1`` and a **Dist** field:
+5. Press ``P`` to possess the aircraft. Possessing the aircraft first is required for manual control.
 
-* **1 × 1** — how many aircraft to spawn along each side of the grid.
-* **Dist** — side length of the grid in meters.
-
-Aircraft types
---------------
-
-* **F450Aircraft** — four rotor drone.
-
-Payloads
---------
-
-* **BasePayload** spawns a cargo box with configurable **Mass (kg)**.  
-  Aircraft equipped with a gripper can lift this box and use it as a payload in scenarios.
-
-
-Manual Control
---------------
-
-* Use these keys for manual flight control:
+6. Use the following keys for manual flight control. Simulation must be started for aircraft to act.
 
 .. list-table::
    :header-rows: 1
 
    * - Command
      - Key Shortcut
+   * - Possess/unpossess aircraft
+     - ``P`` / ``Esc``
    * - Take off
      - ``Space``
    * - Descend
