@@ -2,7 +2,7 @@ SITL simulation with PX4
 ========================
 
 
-1. **Start PteroSim**, press **Start** on the simulation panel, and spawn the aircraft (e.g. F450). You may start PX4 before or after; lockstep engages once PX4 connects.
+1. **Start PteroSim**, spawn the aircraft (e.g. F450) while the simulation is stopped, then press **Start** on the simulation panel. You may start PX4 SITL before or after starting the simulation; lockstep engages once PX4 connects.
 
 2. In the control source panel choose **PX4**:
 
