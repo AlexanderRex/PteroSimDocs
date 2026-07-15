@@ -22,7 +22,11 @@ Connection
 
 .. py:method:: close()
 
-   Close the gRPC channel.
+   Close the gRPC channel without shutting down the simulator.
+
+.. py:method:: shutdown()
+
+   Shut down the simulator application and close the connection.
 
 **Context manager support:**
 
@@ -31,6 +35,7 @@ Connection
    with PteroSim("localhost:10010") as sim:
        sim.start()
        # ...
+   # __exit__ calls close(), not shutdown()
 
 Simulation lifecycle
 ^^^^^^^^^^^^^^^^^^^^
@@ -169,13 +174,17 @@ Aircraft management
    :return: Remaining aircraft count.
    :rtype: int
 
-.. py:method:: camera(sensor_name="Camera", *, timeout=10.0)
+.. py:method:: camera(sensor_name="Camera", *, width=0, height=0, timeout=10.0)
 
    Capture a camera frame from this aircraft (on-demand, blocks until GPU readback completes).
    Called on the ``Aircraft`` handle returned by ``spawn()``.
 
    :param sensor_name: Name of the camera sensor component (default "Camera").
    :type sensor_name: str
+   :param width: Requested width in pixels (0 = component default).
+   :type width: int
+   :param height: Requested height in pixels (0 = component default). Both ``width`` and ``height`` must be set, or both 0.
+   :type height: int
    :param timeout: gRPC timeout in seconds (default 10.0).
    :type timeout: float
    :return: Camera frame with BGR image data.
@@ -294,6 +303,44 @@ Actuator control
    :type throttle: float
    :param enabled: Enable or disable the attitude controller.
    :type enabled: bool
+
+Navigation
+^^^^^^^^^^
+
+.. py:method:: go_to(instance_id, x, y, z, yaw=0.0, *, acceptance_radius_cm=0.0)
+
+   Fly to a UE world position (cm) via pilot sticks and hold the given yaw.
+   Also available on the ``Aircraft`` handle as ``drone.go_to(...)``.
+
+   :param instance_id: Aircraft instance ID.
+   :type instance_id: int
+   :param x: Target X position in UE cm.
+   :type x: float
+   :param y: Target Y position in UE cm.
+   :type y: float
+   :param z: Target Z position in UE cm.
+   :type z: float
+   :param yaw: Desired yaw in degrees (default 0.0).
+   :type yaw: float
+   :param acceptance_radius_cm: Arrival radius in cm (0 = controller default).
+   :type acceptance_radius_cm: float
+
+.. py:method:: cancel_go_to(instance_id)
+
+   Stop GoTo navigation and zero pilot sticks.
+   Also available on the ``Aircraft`` handle as ``drone.cancel_go_to()``.
+
+   :param instance_id: Aircraft instance ID.
+   :type instance_id: int
+
+**Example — GoTo:**
+
+.. code-block:: python
+
+   drone = sim.spawn("F450", x=0, y=0, z=200)
+   drone.go_to(1000, 0, 300, yaw=90.0)
+   # ... later
+   drone.cancel_go_to()
 
 Racing
 ^^^^^^
