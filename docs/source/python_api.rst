@@ -28,14 +28,7 @@ Connection
 
    Shut down the simulator application and close the connection.
 
-**Context manager support:**
-
-.. code-block:: python
-
-   with PteroSim("localhost:10010") as sim:
-       sim.start()
-       # ...
-   # __exit__ calls close(), not shutdown()
+Context manager support: ``__enter__`` / ``__exit__`` call ``close()``, not ``shutdown()``.
 
 Simulation lifecycle
 ^^^^^^^^^^^^^^^^^^^^
@@ -217,17 +210,6 @@ Aircraft management
    * **time_scale** (*float*) — Current time scale.
    * **mavlink_port** (*int*) — MAVLink TCP port.
 
-**Example — full aircraft lifecycle:**
-
-.. code-block:: python
-
-   drone = sim.spawn("F450", lat=55.0, lon=37.0, alt=100.0)
-   print(drone.instance_id)    # 0
-   print(drone.mavlink_port)   # 4560
-
-   frame = drone.camera()      # capture camera image
-   drone.remove()              # destroy aircraft
-
 Sensors
 ^^^^^^^
 
@@ -333,15 +315,6 @@ Navigation
    :param instance_id: Aircraft instance ID.
    :type instance_id: int
 
-**Example — GoTo:**
-
-.. code-block:: python
-
-   drone = sim.spawn("F450", x=0, y=0, z=200)
-   drone.go_to(1000, 0, 300, yaw=90.0)
-   # ... later
-   drone.cancel_go_to()
-
 Racing
 ^^^^^^
 
@@ -420,24 +393,3 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 .. py:method:: remove_track()
 
    Remove current race track and all configured gates from the world.
-
-**Example — RL racing loop:**
-
-.. code-block:: python
-
-   # Setup
-   sim.set_track_gates([
-       {"x": 1000, "y": 0, "z": 0},
-       {"x": 3000, "y": 0, "z": 0},
-       {"x": 5000, "y": 0, "z": 0},
-   ])
-   drone = sim.spawn("F450", x=0, y=0, z=200)
-
-   # RL step
-   next_gate = sim.get_next_gate_pose(drone.instance_id)
-   state = sim.get_race_state(drone.instance_id)
-   print(f"Next gate #{next_gate.gate_index} at ({next_gate.x}, {next_gate.y}, {next_gate.z})")
-   print(f"Gates passed: {state.gates_passed}, Laps: {state.laps_completed}")
-
-   # Episode reset
-   sim.reset_race(drone.instance_id)
