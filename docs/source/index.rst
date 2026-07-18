@@ -34,6 +34,11 @@ Python API
 :doc:`python_api` — Python API commands for programmatic simulation control.
 For ready-to-run usage examples, see `PteroSimScripts on GitHub <https://github.com/AlexanderRex/PteroSimScripts>`_.
 
+Headless & Automation
+---------------------
+
+:doc:`headless` — Windowless runs for CI, Docker, and RL: render flags and headless EULA consent.
+
 .. toctree::
    :maxdepth: 1
    :hidden:
@@ -43,3 +48,4 @@ For ready-to-run usage examples, see `PteroSimScripts on GitHub <https://github.
    sitl_simulation_px4
    sitl_simulation_ardupilot
    python_api
+   headless
