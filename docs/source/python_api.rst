@@ -10,387 +10,100 @@ This reference covers the PteroSim Python SDK.
 pterosim.PteroSim
 -----------------
 
-Client for PteroSim flight simulator. Manages the connection to the simulation server and provides methods to control simulation state, spawn aircraft, and query status.
-
-.. py:class:: PteroSim(address="localhost:10010")
-
-   :param address: gRPC server address.
-   :type address: str
+.. autoclass:: pterosim.PteroSim
+   :members: __init__
+   :undoc-members:
+   :exclude-members: close, shutdown, start, hold, resume, step_once, stop, status, clock, set_time_scale, set_physics_frequency, set_mavlink_bind_address, get_mavlink_bind_address, list_aircraft_classes, spawn, aircraft_status, get_imu, set_actuator_controls, get_actuator_configuration, set_attitude_command, go_to, cancel_go_to, set_track_gates, get_track_info, get_race_state, get_next_gate_pose, reset_race, reset_all_races, remove_track, _ACTUATOR_TYPES
 
 Connection
 ^^^^^^^^^^
 
-.. py:method:: close()
+.. automethod:: pterosim.PteroSim.close
 
-   Close the gRPC channel.
+.. automethod:: pterosim.PteroSim.shutdown
 
-**Context manager support:**
-
-.. code-block:: python
-
-   with PteroSim("localhost:10010") as sim:
-       sim.start()
-       # ...
+Context manager support: ``__enter__`` / ``__exit__`` call ``close()``, not ``shutdown()``.
 
 Simulation lifecycle
 ^^^^^^^^^^^^^^^^^^^^
 
-.. py:method:: start()
+.. automethod:: pterosim.PteroSim.start
 
-   Start simulation (physics running).
+.. automethod:: pterosim.PteroSim.hold
 
-.. py:method:: hold()
+.. automethod:: pterosim.PteroSim.resume
 
-   Pause simulation.
+.. automethod:: pterosim.PteroSim.step_once
 
-.. py:method:: resume()
-
-   Resume simulation after hold.
-
-.. py:method:: step_once()
-
-   Execute a single simulation step then hold. Simulation must be started.
-
-.. py:method:: stop()
-
-   Stop simulation.
+.. automethod:: pterosim.PteroSim.stop
 
 Simulation status
 ^^^^^^^^^^^^^^^^^
 
-.. py:method:: status()
+.. automethod:: pterosim.PteroSim.status
 
-   Returns simulation status.
-
-   :return: Simulation state information.
-   :rtype: SimStatus
-
-   ``SimStatus`` fields:
-
-   * **is_running** (*bool*) — Whether the simulation is currently running.
-   * **time_scale** (*float*) — Current time scale multiplier.
-   * **physics_frequency_hz** (*float*) — Physics update rate in Hz.
-   * **aircraft_count** (*int*) — Number of spawned aircraft.
-
-.. py:method:: clock()
-
-   Get simulation clock state.
-
-   :return: Clock information.
-   :rtype: ClockInfo
-
-   ``ClockInfo`` fields:
-
-   * **simulation_time** (*float*) — Current simulation time in seconds.
-   * **step_number** (*int*) — Current simulation step number.
-   * **target_frequency_hz** (*float*) — Target physics frequency.
-   * **actual_frequency_hz** (*float*) — Actual achieved frequency.
-   * **clock_state** (*str*) — Clock state: "holding", "running", or "step_once".
-   * **time_scale** (*float*) — Current time scale.
+.. automethod:: pterosim.PteroSim.clock
 
 Simulation settings
 ^^^^^^^^^^^^^^^^^^^
 
-.. py:method:: set_time_scale(scale)
+.. automethod:: pterosim.PteroSim.set_time_scale
 
-   Sets simulation time multiplier (e.g. 2.0 = 2x real time).
+.. automethod:: pterosim.PteroSim.set_physics_frequency
 
-   :param scale: Time scale factor.
-   :type scale: float
+.. automethod:: pterosim.PteroSim.set_mavlink_bind_address
 
-.. py:method:: set_physics_frequency(hz)
-
-   Sets physics update rate in Hz.
-
-   :param hz: Frequency in Hz.
-   :type hz: float
-
-.. py:method:: set_mavlink_bind_address(address)
-
-   Set MAVLink bind address for telemetry. Simulation must not be running.
-
-   :param address: Bind address (e.g. "127.0.0.1").
-   :type address: str
-
-.. py:method:: get_mavlink_bind_address()
-
-   Returns current MAVLink bind address.
-
-   :return: Bind address.
-   :rtype: str
+.. automethod:: pterosim.PteroSim.get_mavlink_bind_address
 
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
 
-.. py:method:: list_aircraft_classes()
+.. automethod:: pterosim.PteroSim.list_aircraft_classes
 
-   Returns available aircraft types.
+.. automethod:: pterosim.PteroSim.spawn
 
-   :return: List of aircraft classes.
-   :rtype: list[AircraftClass]
+.. automethod:: pterosim.Aircraft.remove
 
-   ``AircraftClass`` fields:
+.. automethod:: pterosim.Aircraft.camera
 
-   * **name** (*str*) — Aircraft class name (e.g. "F450", "DeltaQuad").
-   * **description** (*str*) — Human-readable description.
-
-.. py:method:: spawn(aircraft_class, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0)
-
-   Spawn an aircraft. Use ``lat/lon/alt`` for geographic coordinates or ``x/y/z`` for Unreal Engine coordinates.
-   Returns an ``Aircraft`` handle with ``instance_id``, ``mavlink_port``, ``remove()`` and ``camera()`` methods.
-
-   :param aircraft_class: Aircraft type name (e.g. "F450", "DeltaQuad").
-   :type aircraft_class: str
-   :param lat: Latitude in degrees.
-   :type lat: float
-   :param lon: Longitude in degrees.
-   :type lon: float
-   :param alt: Altitude in meters.
-   :type alt: float
-   :param x: X coordinate in UE units.
-   :type x: float
-   :param y: Y coordinate in UE units.
-   :type y: float
-   :param z: Z coordinate in UE units.
-   :type z: float
-   :param yaw: Yaw rotation in degrees (default 0.0).
-   :type yaw: float
-   :param pitch: Pitch rotation in degrees (default 0.0).
-   :type pitch: float
-   :param roll: Roll rotation in degrees (default 0.0).
-   :type roll: float
-   :return: Handle to the spawned aircraft.
-   :rtype: Aircraft
-
-.. py:method:: remove()
-
-   Destroy this aircraft. Called on the ``Aircraft`` handle returned by ``spawn()``.
-
-   :return: Remaining aircraft count.
-   :rtype: int
-
-.. py:method:: camera(sensor_name="Camera", *, timeout=10.0)
-
-   Capture a camera frame from this aircraft (on-demand, blocks until GPU readback completes).
-   Called on the ``Aircraft`` handle returned by ``spawn()``.
-
-   :param sensor_name: Name of the camera sensor component (default "Camera").
-   :type sensor_name: str
-   :param timeout: gRPC timeout in seconds (default 10.0).
-   :type timeout: float
-   :return: Camera frame with BGR image data.
-   :rtype: CameraFrame
-
-   ``CameraFrame`` fields:
-
-   * **image** (*numpy.ndarray*) — BGR image array (H, W, 3), dtype=uint8. Directly usable with ``cv2.imshow()``.
-   * **width** (*int*) — Frame width in pixels.
-   * **height** (*int*) — Frame height in pixels.
-   * **timestamp** (*float*) — SimClock time when frame was captured.
-   * **sequence_number** (*int*) — Monotonically increasing frame counter.
-
-.. py:method:: aircraft_status()
-
-   Get status of all spawned aircraft.
-
-   :return: List of aircraft statuses.
-   :rtype: list[AircraftStatus]
-
-   ``AircraftStatus`` fields:
-
-   * **instance_id** (*int*) — Unique identifier of the aircraft.
-   * **aircraft_name** (*str*) — Aircraft class name.
-   * **run_state** (*str*) — Run state: "running", "holding", or "step_once".
-   * **actual_frequency_hz** (*float*) — Actual physics frequency.
-   * **target_frequency_hz** (*float*) — Target physics frequency.
-   * **step_count** (*int*) — Number of simulation steps executed.
-   * **crashed** (*bool*) — Whether the aircraft has crashed.
-   * **time_scale** (*float*) — Current time scale.
-   * **mavlink_port** (*int*) — MAVLink TCP port.
-
-**Example — full aircraft lifecycle:**
-
-.. code-block:: python
-
-   drone = sim.spawn("F450", lat=55.0, lon=37.0, alt=100.0)
-   print(drone.instance_id)    # 0
-   print(drone.mavlink_port)   # 4560
-
-   frame = drone.camera()      # capture camera image
-   drone.remove()              # destroy aircraft
+.. automethod:: pterosim.PteroSim.aircraft_status
 
 Sensors
 ^^^^^^^
 
-.. py:method:: get_imu(instance_id)
-
-   Get IMU reading for an aircraft.
-
-   :param instance_id: Aircraft instance ID.
-   :type instance_id: int
-   :return: IMU sample in body FRD frame.
-   :rtype: IMUReading
-
-   ``IMUReading`` fields:
-
-   * **acceleration** (*tuple[float, float, float]*) — Specific force in m/s^2.
-   * **angular_velocity** (*tuple[float, float, float]*) — Angular rates in rad/s.
-   * **magnetic_field** (*tuple[float, float, float]*) — Magnetic field in uT.
-   * **timestamp_simulation_s** (*float*) — Simulation timestamp in seconds.
+.. automethod:: pterosim.PteroSim.get_imu
 
 Actuator control
 ^^^^^^^^^^^^^^^^
 
-.. py:method:: set_actuator_controls(instance_id, controls, timestamp_usec=0)
+.. automethod:: pterosim.PteroSim.set_actuator_controls
 
-   Send normalized actuator channel values directly to the aircraft.
-   This bypasses autopilot control and is commonly used in RL motor-control loops.
+.. automethod:: pterosim.PteroSim.get_actuator_configuration
 
-   :param instance_id: Aircraft instance ID.
-   :type instance_id: int
-   :param controls: Actuator channel values (mapping depends on aircraft configuration).
-   :type controls: list[float]
-   :param timestamp_usec: Optional command timestamp in microseconds.
-   :type timestamp_usec: int
+.. automethod:: pterosim.PteroSim.set_attitude_command
 
-.. py:method:: get_actuator_configuration(instance_id)
+Navigation
+^^^^^^^^^^
 
-   Get actuator channel layout for an aircraft.
+.. automethod:: pterosim.PteroSim.go_to
 
-   :param instance_id: Aircraft instance ID.
-   :type instance_id: int
-   :return: Actuator mapping and channel count.
-   :rtype: ActuatorConfiguration
-
-   ``ActuatorConfiguration`` fields:
-
-   * **instance_id** (*int*) — Aircraft instance ID.
-   * **channel_count** (*int*) — Number of required control channels.
-   * **mappings** (*list[ActuatorMapping]*) — Per-channel mapping descriptors.
-
-   ``ActuatorMapping`` fields:
-
-   * **channel** (*int*) — Channel index in controls array.
-   * **type** (*str*) — Actuator type (for example ``motor``, ``elevator``, ``rudder``).
-   * **component_index** (*int*) — Index within actuator type.
-   * **input_min** (*float*) — Expected minimum input value.
-   * **input_max** (*float*) — Expected maximum input value.
-   * **name** (*str*) — Human-readable actuator name.
-
-.. py:method:: set_attitude_command(instance_id, roll_rad=0.0, pitch_rad=0.0, yaw_rate_rad_sec=0.0, throttle=0.0, enabled=True)
-
-   Send attitude command to the QuadX attitude controller running in C++ at physics rate.
-   When enabled, this controller overrides motor throttles from ``set_actuator_controls()``.
-
-   :param instance_id: Aircraft instance ID.
-   :type instance_id: int
-   :param roll_rad: Desired roll angle in radians.
-   :type roll_rad: float
-   :param pitch_rad: Desired pitch angle in radians.
-   :type pitch_rad: float
-   :param yaw_rate_rad_sec: Desired yaw rate in radians per second.
-   :type yaw_rate_rad_sec: float
-   :param throttle: Base thrust in range ``[0, 1]``.
-   :type throttle: float
-   :param enabled: Enable or disable the attitude controller.
-   :type enabled: bool
+.. automethod:: pterosim.PteroSim.cancel_go_to
 
 Racing
 ^^^^^^
 
 Methods for drone racing: track configuration, gate queries, and per-aircraft race progress tracking. Requires an ``ARaceTrack`` actor in the level (created automatically by ``set_track_gates()`` if none exists).
 
-.. py:method:: set_track_gates(gates)
+.. automethod:: pterosim.PteroSim.set_track_gates
 
-   Create or update a race track with the given gate definitions. If no ``ARaceTrack`` exists in the world, one is spawned automatically. After setting gates, all existing aircraft are registered with the track.
+.. automethod:: pterosim.PteroSim.get_track_info
 
-   Each gate is a dict with position keys (``x``, ``y``, ``z``) and optional rotation keys (``yaw``, ``pitch``, ``roll``, default 0).
+.. automethod:: pterosim.PteroSim.get_race_state
 
-   :param gates: List of gate definition dicts.
-   :type gates: list[dict]
-   :return: Resulting track info with actual gate center positions.
-   :rtype: RaceTrackInfo
+.. automethod:: pterosim.PteroSim.get_next_gate_pose
 
-.. py:method:: get_track_info()
+.. automethod:: pterosim.PteroSim.reset_race
 
-   Get the race track layout (gate positions and forward vectors).
+.. automethod:: pterosim.PteroSim.reset_all_races
 
-   :return: Track information.
-   :rtype: RaceTrackInfo
-
-   ``RaceTrackInfo`` fields:
-
-   * **gate_count** (*int*) — Number of gates on the track.
-   * **gates** (*list[GatePose]*) — List of gate poses.
-
-   ``GatePose`` fields:
-
-   * **gate_index** (*int*) — Gate index in track sequence.
-   * **x** (*float*) — Gate center X position (UE cm).
-   * **y** (*float*) — Gate center Y position (UE cm).
-   * **z** (*float*) — Gate center Z position (UE cm).
-   * **forward_x** (*float*) — Gate forward vector X component.
-   * **forward_y** (*float*) — Gate forward vector Y component.
-   * **forward_z** (*float*) — Gate forward vector Z component.
-
-.. py:method:: get_race_state(instance_id)
-
-   Get race progress for a specific aircraft.
-
-   :param instance_id: Aircraft instance ID.
-   :type instance_id: int
-   :return: Race progress state.
-   :rtype: RaceState
-
-   ``RaceState`` fields:
-
-   * **instance_id** (*int*) — Aircraft instance ID.
-   * **next_gate_index** (*int*) — Index of the next gate the aircraft should pass.
-   * **gates_passed** (*int*) — Total number of gates passed.
-   * **laps_completed** (*int*) — Number of complete laps.
-   * **last_gate_passed_time** (*float*) — Simulation time (seconds) when the last gate was passed. 0.0 if no gate passed yet.
-
-.. py:method:: get_next_gate_pose(instance_id)
-
-   Get the pose of the next gate for an aircraft. Shortcut for RL observation — avoids separate ``get_track_info()`` + ``get_race_state()`` calls.
-
-   :param instance_id: Aircraft instance ID.
-   :type instance_id: int
-   :return: Pose of the next gate.
-   :rtype: GatePose
-
-.. py:method:: reset_race(instance_id)
-
-   Reset race tracking for one aircraft (next gate, gates passed, laps, timing). Use at the start of each RL episode.
-
-   :param instance_id: Aircraft instance ID.
-   :type instance_id: int
-
-.. py:method:: reset_all_races()
-
-   Reset race tracking for all registered aircraft. Useful for multi-agent RL episode resets.
-
-.. py:method:: remove_track()
-
-   Remove current race track and all configured gates from the world.
-
-**Example — RL racing loop:**
-
-.. code-block:: python
-
-   # Setup
-   sim.set_track_gates([
-       {"x": 1000, "y": 0, "z": 0},
-       {"x": 3000, "y": 0, "z": 0},
-       {"x": 5000, "y": 0, "z": 0},
-   ])
-   drone = sim.spawn("F450", x=0, y=0, z=200)
-
-   # RL step
-   next_gate = sim.get_next_gate_pose(drone.instance_id)
-   state = sim.get_race_state(drone.instance_id)
-   print(f"Next gate #{next_gate.gate_index} at ({next_gate.x}, {next_gate.y}, {next_gate.z})")
-   print(f"Gates passed: {state.gates_passed}, Laps: {state.laps_completed}")
-
-   # Episode reset
-   sim.reset_race(drone.instance_id)
+.. automethod:: pterosim.PteroSim.remove_track
