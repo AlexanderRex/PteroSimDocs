@@ -11,8 +11,8 @@ This reference covers the PteroSim Python SDK.
    :local:
    :depth: 2
 
-pterosim.PteroSim
------------------
+Classes
+-------
 
 .. py:class:: PteroSim(address="localhost:10010")
 
@@ -23,14 +23,18 @@ pterosim.PteroSim
 
    :param address: gRPC server address.
 
+.. py:class:: Aircraft
+
+   Handle to a spawned aircraft.
+
 Connection
 ^^^^^^^^^^
 
-.. py:method:: close()
+.. py:method:: PteroSim.close()
 
    Close the gRPC channel without shutting down the simulator.
 
-.. py:method:: shutdown()
+.. py:method:: PteroSim.shutdown()
 
    Shut down the simulator application and close the connection.
 
@@ -39,30 +43,30 @@ Context manager support: ``__enter__`` / ``__exit__`` call ``close()``, not ``sh
 Simulation lifecycle
 ^^^^^^^^^^^^^^^^^^^^
 
-.. py:method:: start()
+.. py:method:: PteroSim.start()
 
    Start simulation (physics running).
 
-.. py:method:: hold()
+.. py:method:: PteroSim.hold()
 
    Pause simulation.
 
-.. py:method:: resume()
+.. py:method:: PteroSim.resume()
 
    Resume simulation after hold.
 
-.. py:method:: step_once()
+.. py:method:: PteroSim.step_once()
 
    Execute a single simulation step then hold. Simulation must be started.
 
-.. py:method:: stop()
+.. py:method:: PteroSim.stop()
 
    Stop simulation.
 
 Simulation status
 ^^^^^^^^^^^^^^^^^
 
-.. py:method:: status()
+.. py:method:: PteroSim.status()
 
    Returns simulation status.
 
@@ -74,7 +78,7 @@ Simulation status
              - **aircraft_count** (int): Number of spawned aircraft.
    :rtype: SimStatus
 
-.. py:method:: clock()
+.. py:method:: PteroSim.clock()
 
    Get simulation clock state.
 
@@ -91,32 +95,32 @@ Simulation status
 Simulation settings
 ^^^^^^^^^^^^^^^^^^^
 
-.. py:method:: set_time_scale(scale)
+.. py:method:: PteroSim.set_time_scale(scale)
 
    Sets simulation time multiplier (e.g. 2.0 = 2x real time).
 
    :param scale: Time scale factor.
 
-.. py:method:: set_physics_frequency(hz)
+.. py:method:: PteroSim.set_physics_frequency(hz)
 
    Sets physics update rate in Hz.
 
    :param hz: Frequency in Hz.
 
-.. py:method:: set_mavlink_bind_address(address)
+.. py:method:: PteroSim.set_mavlink_bind_address(address)
 
    Set MAVLink bind address for telemetry. Simulation must not be running.
 
    :param address: Bind address (e.g. "127.0.0.1").
 
-.. py:method:: get_mavlink_bind_address()
+.. py:method:: PteroSim.get_mavlink_bind_address()
 
    Returns current MAVLink bind address.
 
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
 
-.. py:method:: list_aircraft_classes()
+.. py:method:: PteroSim.list_aircraft_classes()
 
    Returns available aircraft types.
 
@@ -124,9 +128,9 @@ Aircraft management
 
              - **name** (str): Aircraft class name (e.g. "F450", "DeltaQuad").
              - **description** (str): Human-readable description.
-   :rtype: List of AircraftClass with fields
+   :rtype: List of AircraftClass
 
-.. py:method:: spawn(aircraft_class, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0)
+.. py:method:: PteroSim.spawn(aircraft_class, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0)
 
    Spawn an aircraft.
 
@@ -147,11 +151,66 @@ Aircraft management
 
    :returns: Handle to the spawned aircraft.
 
-.. py:method:: remove()
+.. py:method:: PteroSim.aircraft_status()
+
+   Get status of all spawned aircraft.
+
+   :returns:
+
+             - **instance_id** (int): Unique identifier of the aircraft.
+             - **aircraft_name** (str): Aircraft class name.
+             - **run_state** (str): "running", "holding", or "step_once".
+             - **actual_frequency_hz** (float): Actual physics frequency.
+             - **target_frequency_hz** (float): Target physics frequency.
+             - **step_count** (int): Number of simulation steps executed.
+             - **crashed** (bool): Whether the aircraft has crashed.
+             - **time_scale** (float): Current time scale.
+             - **mavlink_port** (int): MAVLink TCP port.
+   :rtype: List of AircraftStatus
+
+.. py:property:: Aircraft.instance_id
+
+   Unique aircraft id in the simulation.
+
+   :type: int
+
+.. py:property:: Aircraft.mavlink_port
+
+   MAVLink TCP port (4560 + instance_id).
+
+   :type: int
+
+.. py:method:: Aircraft.remove()
 
    Destroy this aircraft. Returns remaining aircraft count.
 
-.. py:method:: camera(sensor_name="Camera", *, width=0, height=0, timeout=10)
+Sensors
+^^^^^^^
+
+.. py:method:: PteroSim.get_imu(instance_id)
+
+   Get IMU reading for an aircraft.
+
+   :param instance_id: Aircraft instance ID.
+
+   :returns:
+
+             - **acceleration** (tuple[float, float, float]): Specific force in m/s².
+             - **angular_velocity** (tuple[float, float, float]): Angular rates in rad/s.
+             - **magnetic_field** (tuple[float, float, float]): Magnetic field in µT.
+             - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
+   :rtype: IMU sample in body FRD frame
+
+.. py:method:: Aircraft.imu()
+
+   Get IMU sensor reading for this aircraft.
+
+   :returns: IMUReading with acceleration (m/s²), angular_velocity (rad/s),
+             and magnetic_field (µT) in body FRD frame.
+
+   :raises grpc.RpcError: NOT_FOUND if aircraft has no IMU sensor.
+
+.. py:method:: Aircraft.camera(sensor_name="Camera", *, width=0, height=0, timeout=10)
 
    Capture a camera frame from this aircraft (on-demand, blocks until GPU readback completes).
 
@@ -170,44 +229,10 @@ Aircraft management
              - **sequence_number** (int): Monotonically increasing frame counter.
    :rtype: CameraFrame
 
-.. py:method:: aircraft_status()
-
-   Get status of all spawned aircraft.
-
-   :returns:
-
-             - **instance_id** (int): Unique identifier of the aircraft.
-             - **aircraft_name** (str): Aircraft class name.
-             - **run_state** (str): "running", "holding", or "step_once".
-             - **actual_frequency_hz** (float): Actual physics frequency.
-             - **target_frequency_hz** (float): Target physics frequency.
-             - **step_count** (int): Number of simulation steps executed.
-             - **crashed** (bool): Whether the aircraft has crashed.
-             - **time_scale** (float): Current time scale.
-             - **mavlink_port** (int): MAVLink TCP port.
-   :rtype: List of AircraftStatus with fields
-
-Sensors
-^^^^^^^
-
-.. py:method:: get_imu(instance_id)
-
-   Get IMU reading for an aircraft.
-
-   :param instance_id: Aircraft instance ID.
-
-   :returns:
-
-             - **acceleration** (tuple[float, float, float]): Specific force in m/s².
-             - **angular_velocity** (tuple[float, float, float]): Angular rates in rad/s.
-             - **magnetic_field** (tuple[float, float, float]): Magnetic field in µT.
-             - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
-   :rtype: IMU sample in body FRD frame with fields
-
 Actuator control
 ^^^^^^^^^^^^^^^^
 
-.. py:method:: set_actuator_controls(instance_id, controls, timestamp_usec=0)
+.. py:method:: PteroSim.set_actuator_controls(instance_id, controls, timestamp_usec=0)
 
    Send normalized actuator channel values directly to the aircraft.
 
@@ -217,7 +242,14 @@ Actuator control
    :param controls: Actuator channel values (mapping depends on aircraft configuration).
    :param timestamp_usec: Optional command timestamp in microseconds.
 
-.. py:method:: get_actuator_configuration(instance_id)
+.. py:method:: Aircraft.set_controls(controls, timestamp_usec=0)
+
+   Send actuator controls to this aircraft (bypasses autopilot).
+
+   :param controls: Normalized channel values. Use actuator_config() to learn layout.
+   :param timestamp_usec: Timestamp in microseconds (0 = use current time).
+
+.. py:method:: PteroSim.get_actuator_configuration(instance_id)
 
    Get actuator channel layout for an aircraft.
 
@@ -233,7 +265,11 @@ Actuator control
              component_index, input_min, input_max, name.
    :rtype: Actuator mapping and channel count. ActuatorConfiguration fields
 
-.. py:method:: set_attitude_command(instance_id, roll_rad=0.0, pitch_rad=0.0, yaw_rate_rad_sec=0.0, throttle=0.0, enabled=True)
+.. py:method:: Aircraft.actuator_config()
+
+   Get actuator configuration for this aircraft.
+
+.. py:method:: PteroSim.set_attitude_command(instance_id, roll_rad=0.0, pitch_rad=0.0, yaw_rate_rad_sec=0.0, throttle=0.0, enabled=True)
 
    Send attitude command to the QuadX attitude controller running in C++ at physics rate.
 
@@ -249,7 +285,7 @@ Actuator control
 Navigation
 ^^^^^^^^^^
 
-.. py:method:: go_to(instance_id, x, y, z, yaw=0.0, *, acceptance_radius_cm=0.0)
+.. py:method:: PteroSim.go_to(instance_id, x, y, z, yaw=0.0, *, acceptance_radius_cm=0.0)
 
    Fly to a UE world position (cm) via pilot sticks and hold the given yaw.
 
@@ -262,7 +298,11 @@ Navigation
    :param yaw: Desired yaw in degrees (default 0.0).
    :param acceptance_radius_cm: Arrival radius in cm (0 = controller default).
 
-.. py:method:: cancel_go_to(instance_id)
+.. py:method:: Aircraft.go_to(x, y, z, yaw=0.0, *, acceptance_radius_cm=0.0)
+
+   Fly to a UE world position (cm) and hold yaw.
+
+.. py:method:: PteroSim.cancel_go_to(instance_id)
 
    Stop GoTo navigation and zero pilot sticks.
 
@@ -270,12 +310,16 @@ Navigation
 
    :param instance_id: Aircraft instance ID.
 
+.. py:method:: Aircraft.cancel_go_to()
+
+   Stop GoTo navigation.
+
 Racing
 ^^^^^^
 
 Methods for drone racing: track configuration, gate queries, and per-aircraft race progress tracking. Requires an ``ARaceTrack`` actor in the level (created automatically by ``set_track_gates()`` if none exists).
 
-.. py:method:: set_track_gates(gates)
+.. py:method:: PteroSim.set_track_gates(gates)
 
    Create or update a race track with the given gate definitions.
 
@@ -289,7 +333,7 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    :returns: Resulting track info with actual gate center positions.
 
-.. py:method:: get_track_info()
+.. py:method:: PteroSim.get_track_info()
 
    Get the race track layout (gate positions and forward vectors).
 
@@ -301,7 +345,7 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
              Each GatePose has gate_index, x/y/z (UE cm), forward_x/y/z.
    :rtype: RaceTrackInfo
 
-.. py:method:: get_race_state(instance_id)
+.. py:method:: PteroSim.get_race_state(instance_id)
 
    Get race progress for a specific aircraft.
 
@@ -317,7 +361,7 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
                the last gate was passed. 0.0 if no gate passed yet.
    :rtype: RaceState
 
-.. py:method:: get_next_gate_pose(instance_id)
+.. py:method:: PteroSim.get_next_gate_pose(instance_id)
 
    Get the pose of the next gate for an aircraft.
 
@@ -328,7 +372,7 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    :returns: Pose of the next gate.
 
-.. py:method:: reset_race(instance_id)
+.. py:method:: PteroSim.reset_race(instance_id)
 
    Reset race tracking for one aircraft (next gate, gates passed, laps, timing).
 
@@ -336,12 +380,259 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    :param instance_id: Aircraft instance ID.
 
-.. py:method:: reset_all_races()
+.. py:method:: PteroSim.reset_all_races()
 
    Reset race tracking for all registered aircraft.
 
    Useful for multi-agent RL episode resets.
 
-.. py:method:: remove_track()
+.. py:method:: PteroSim.remove_track()
 
    Remove current race track and all configured gates from the world.
+
+Data types
+----------
+
+Values returned by the methods above. You do not construct these.
+
+.. py:class:: CameraFrame
+
+   Raw BGR camera frame from PteroSim.
+
+   .. py:attribute:: image
+      :type: ndarray
+
+   .. py:attribute:: width
+      :type: int
+
+   .. py:attribute:: height
+      :type: int
+
+   .. py:attribute:: timestamp
+      :type: float
+
+   .. py:attribute:: sequence_number
+      :type: int
+
+.. py:class:: SimStatus
+
+   Simulation status from status().
+
+   .. py:attribute:: is_running
+      :type: bool
+
+   .. py:attribute:: time_scale
+      :type: float
+
+   .. py:attribute:: physics_frequency_hz
+      :type: float
+
+   .. py:attribute:: aircraft_count
+      :type: int
+
+.. py:class:: ClockInfo
+
+   Simulation clock from clock().
+
+   .. py:attribute:: simulation_time
+      :type: float
+
+   .. py:attribute:: step_number
+      :type: int
+
+   .. py:attribute:: target_frequency_hz
+      :type: float
+
+   .. py:attribute:: actual_frequency_hz
+      :type: float
+
+   .. py:attribute:: clock_state
+      :type: str
+
+   .. py:attribute:: time_scale
+      :type: float
+
+.. py:class:: AircraftStatus
+
+   Status of a spawned aircraft.
+
+   Raises grpc.RpcError (FAILED_PRECONDITION) if the world lacks a GeoReferencingSystem.
+
+   .. py:attribute:: instance_id
+      :type: int
+
+   .. py:attribute:: aircraft_name
+      :type: str
+
+   .. py:attribute:: run_state
+      :type: str
+
+   .. py:attribute:: actual_frequency_hz
+      :type: float
+
+   .. py:attribute:: target_frequency_hz
+      :type: float
+
+   .. py:attribute:: step_count
+      :type: int
+
+   .. py:attribute:: crashed
+      :type: bool
+
+   .. py:attribute:: time_scale
+      :type: float
+
+   .. py:attribute:: mavlink_port
+      :type: int
+
+   .. py:attribute:: x
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: y
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: z
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: lat
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: lon
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: alt
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: yaw
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: pitch
+      :type: float
+      :value: 0.0
+
+   .. py:attribute:: roll
+      :type: float
+      :value: 0.0
+
+.. py:class:: AircraftClass
+
+   Aircraft type from list_aircraft_classes().
+
+   .. py:attribute:: name
+      :type: str
+
+   .. py:attribute:: description
+      :type: str
+
+.. py:class:: GatePose
+
+   Position and forward direction of a race gate (UE engine coords, cm).
+
+   .. py:attribute:: gate_index
+      :type: int
+
+   .. py:attribute:: x
+      :type: float
+
+   .. py:attribute:: y
+      :type: float
+
+   .. py:attribute:: z
+      :type: float
+
+   .. py:attribute:: forward_x
+      :type: float
+
+   .. py:attribute:: forward_y
+      :type: float
+
+   .. py:attribute:: forward_z
+      :type: float
+
+.. py:class:: RaceTrackInfo
+
+   Full track layout.
+
+   .. py:attribute:: gate_count
+      :type: int
+
+   .. py:attribute:: gates
+      :type: list[GatePose]
+
+.. py:class:: RaceState
+
+   Per-aircraft race progress.
+
+   .. py:attribute:: instance_id
+      :type: int
+
+   .. py:attribute:: next_gate_index
+      :type: int
+
+   .. py:attribute:: gates_passed
+      :type: int
+
+   .. py:attribute:: laps_completed
+      :type: int
+
+   .. py:attribute:: last_gate_passed_time
+      :type: float
+
+.. py:class:: IMUReading
+
+   IMU sensor reading (body FRD: X=forward, Y=right, Z=down).
+
+   .. py:attribute:: acceleration
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: angular_velocity
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: magnetic_field
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: timestamp_simulation_s
+      :type: float
+      :value: 0.0
+
+.. py:class:: ActuatorConfiguration
+
+   Actuator layout for an aircraft.
+
+   .. py:attribute:: instance_id
+      :type: int
+
+   .. py:attribute:: channel_count
+      :type: int
+
+   .. py:attribute:: mappings
+      :type: list[ActuatorMapping]
+
+.. py:class:: ActuatorMapping
+
+   Single actuator channel mapping.
+
+   .. py:attribute:: channel
+      :type: int
+
+   .. py:attribute:: type
+      :type: str
+
+   .. py:attribute:: component_index
+      :type: int
+
+   .. py:attribute:: input_min
+      :type: float
+
+   .. py:attribute:: input_max
+      :type: float
+
+   .. py:attribute:: name
+      :type: str
