@@ -229,6 +229,90 @@ Sensors
              - **sequence_number** (int): Monotonically increasing frame counter.
    :rtype: CameraFrame
 
+.. py:method:: PteroSim.list_sensors(instance_id)
+
+   List the sensors currently on an aircraft.
+
+   Read-only — allowed at any time, before or after start().
+
+   :param instance_id: Aircraft instance ID.
+
+   :returns: List of SensorInfo (name, type, enabled, update_hz, position, orientation).
+
+.. py:method:: Aircraft.list_sensors()
+
+   List the sensors on this aircraft. See PteroSim.list_sensors().
+
+.. py:method:: PteroSim.add_sensor(instance_id, sensor_type, name="")
+
+   Add a sensor to an aircraft. Only before start() (config window).
+
+   :param instance_id: Aircraft instance ID.
+   :param sensor_type: One of "imu", "gps", "barometer", "airspeed",
+                       "temperature", "camera".
+   :param name: Desired name; empty uses the class default. A name already taken
+                on the aircraft is auto-suffixed (IMU -> IMU1).
+
+   :returns: The final unique name assigned to the new sensor.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION if the sim has already started,
+       INVALID_ARGUMENT for an unknown sensor_type.
+
+.. py:method:: Aircraft.add_sensor(sensor_type, name="")
+
+   Add a sensor (before start). Returns its final unique name. See PteroSim.add_sensor().
+
+.. py:method:: PteroSim.remove_sensor(instance_id, name)
+
+   Remove a sensor by name. Only before start() (config window).
+
+   :param instance_id: Aircraft instance ID.
+   :param name: Sensor name (see list_sensors()).
+
+   :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
+       FAILED_PRECONDITION if the sim has already started.
+
+.. py:method:: Aircraft.remove_sensor(name)
+
+   Remove a sensor by name (before start). See PteroSim.remove_sensor().
+
+.. py:method:: PteroSim.set_sensor_pose(instance_id, name, position, orientation=(0.0, 0.0, 0.0))
+
+   Set a sensor's mount pose. Only before start() (config window).
+
+   :param instance_id: Aircraft instance ID.
+   :param name: Sensor name.
+   :param position: (x, y, z) in meters, aircraft origin frame.
+   :param orientation: (roll, pitch, yaw) in degrees (default no rotation).
+
+   :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
+       FAILED_PRECONDITION if the sim has already started.
+
+.. py:method:: Aircraft.set_sensor_pose(name, position, orientation=(0.0, 0.0, 0.0))
+
+   Set a sensor's mount pose (before start). See PteroSim.set_sensor_pose().
+
+.. py:method:: PteroSim.set_sensor_param(instance_id, name, *, enabled=None, update_hz=None, noise=None, logging=None)
+
+   Update sensor parameters. Only the given (non-None) fields are applied.
+
+   Only before start() (config window).
+
+   :param instance_id: Aircraft instance ID.
+   :param name: Sensor name.
+   :param enabled: Enable/disable the sensor.
+   :param update_hz: Update rate in Hz (must be > 0).
+   :param noise: Enable/disable sensor noise.
+   :param logging: Enable/disable per-sensor logging.
+
+   :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
+       FAILED_PRECONDITION if the sim has already started,
+       INVALID_ARGUMENT if update_hz <= 0.
+
+.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None)
+
+   Update sensor params, only non-None fields (before start). See PteroSim.set_sensor_param().
+
 Actuator control
 ^^^^^^^^^^^^^^^^
 
@@ -601,6 +685,28 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: timestamp_simulation_s
       :type: float
       :value: 0.0
+
+.. py:class:: SensorInfo
+
+   One sensor's identity and pose (from list_sensors()).
+
+   .. py:attribute:: name
+      :type: str
+
+   .. py:attribute:: type
+      :type: str
+
+   .. py:attribute:: enabled
+      :type: bool
+
+   .. py:attribute:: update_hz
+      :type: float
+
+   .. py:attribute:: position
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: orientation
+      :type: tuple[float, float, float]
 
 .. py:class:: ActuatorConfiguration
 
