@@ -19,13 +19,14 @@ Classes
    Client for PteroSim flight simulator.
 
    Manages the connection to the simulation server and provides methods to
-   control simulation state, spawn aircraft, and query status.
+   control simulation state, spawn aircraft, and query status. Per-aircraft
+   operations live on the Aircraft handle returned by spawn() / get_aircraft().
 
    :param address: gRPC server address.
 
 .. py:class:: Aircraft
 
-   Handle to a spawned aircraft.
+   Handle to a spawned aircraft, from PteroSim.spawn() or PteroSim.get_aircraft().
 
 Connection
 ^^^^^^^^^^
@@ -135,8 +136,8 @@ Aircraft management
    Spawn an aircraft.
 
    Use lat/lon/alt for geographic coordinates or x/y/z for Unreal Engine
-   coordinates. Returns an Aircraft handle with instance_id, mavlink_port,
-   remove() and camera() methods.
+   coordinates. Returns an Aircraft handle; all per-aircraft operations
+   (controls, sensors, navigation, racing) are methods on the handle.
 
    :param aircraft_class: Aircraft type name (e.g. "F450", "DeltaQuad").
    :param lat: Latitude in degrees.
@@ -150,6 +151,17 @@ Aircraft management
    :param roll: Roll rotation in degrees (default 0.0).
 
    :returns: Handle to the spawned aircraft.
+
+.. py:method:: PteroSim.get_aircraft(instance_id)
+
+   Handle to an already-spawned aircraft (e.g. after reconnecting to a running sim).
+
+   Existence is not verified — the first RPC on the handle fails with
+   NOT_FOUND for an unknown id. Use aircraft_status() to list live ids.
+
+   :param instance_id: Aircraft instance ID.
+
+   :returns: Handle to the aircraft.
 
 .. py:method:: PteroSim.aircraft_status()
 
@@ -167,6 +179,8 @@ Aircraft management
              - **time_scale** (float): Current time scale.
              - **mavlink_port** (int): MAVLink TCP port.
    :rtype: List of AircraftStatus
+
+   :raises grpc.RpcError: FAILED_PRECONDITION if the world lacks a GeoReferencingSystem.
 
 .. py:property:: Aircraft.instance_id
 
@@ -187,11 +201,9 @@ Aircraft management
 Sensors
 ^^^^^^^
 
-.. py:method:: PteroSim.get_imu(instance_id)
+.. py:method:: Aircraft.imu()
 
-   Get IMU reading for an aircraft.
-
-   :param instance_id: Aircraft instance ID.
+   Get IMU reading for this aircraft.
 
    :returns:
 
@@ -201,14 +213,7 @@ Sensors
              - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
    :rtype: IMU sample in body FRD frame
 
-.. py:method:: Aircraft.imu()
-
-   Get IMU sensor reading for this aircraft.
-
-   :returns: IMUReading with acceleration (m/s²), angular_velocity (rad/s),
-             and magnetic_field (µT) in body FRD frame.
-
-   :raises grpc.RpcError: NOT_FOUND if aircraft has no IMU sensor.
+   :raises grpc.RpcError: NOT_FOUND if the aircraft has no IMU sensor.
 
 .. py:method:: Aircraft.camera(sensor_name="Camera", *, width=0, height=0, timeout=10)
 
@@ -229,25 +234,18 @@ Sensors
              - **sequence_number** (int): Monotonically increasing frame counter.
    :rtype: CameraFrame
 
-.. py:method:: PteroSim.list_sensors(instance_id)
+.. py:method:: Aircraft.list_sensors()
 
-   List the sensors currently on an aircraft.
+   List the sensors currently on this aircraft.
 
    Read-only — allowed at any time, before or after start().
 
-   :param instance_id: Aircraft instance ID.
-
    :returns: List of SensorInfo (name, type, enabled, update_hz, position, orientation).
 
-.. py:method:: Aircraft.list_sensors()
+.. py:method:: Aircraft.add_sensor(sensor_type, name="")
 
-   List the sensors on this aircraft. See PteroSim.list_sensors().
+   Add a sensor to this aircraft. Only before start() (config window).
 
-.. py:method:: PteroSim.add_sensor(instance_id, sensor_type, name="")
-
-   Add a sensor to an aircraft. Only before start() (config window).
-
-   :param instance_id: Aircraft instance ID.
    :param sensor_type: One of "imu", "gps", "barometer", "airspeed",
                        "temperature", "camera".
    :param name: Desired name; empty uses the class default. A name already taken
@@ -258,29 +256,19 @@ Sensors
    :raises grpc.RpcError: FAILED_PRECONDITION if the sim has already started,
        INVALID_ARGUMENT for an unknown sensor_type.
 
-.. py:method:: Aircraft.add_sensor(sensor_type, name="")
-
-   Add a sensor (before start). Returns its final unique name. See PteroSim.add_sensor().
-
-.. py:method:: PteroSim.remove_sensor(instance_id, name)
+.. py:method:: Aircraft.remove_sensor(name)
 
    Remove a sensor by name. Only before start() (config window).
 
-   :param instance_id: Aircraft instance ID.
    :param name: Sensor name (see list_sensors()).
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
        FAILED_PRECONDITION if the sim has already started.
 
-.. py:method:: Aircraft.remove_sensor(name)
-
-   Remove a sensor by name (before start). See PteroSim.remove_sensor().
-
-.. py:method:: PteroSim.set_sensor_pose(instance_id, name, position, orientation=(0.0, 0.0, 0.0))
+.. py:method:: Aircraft.set_sensor_pose(name, position, orientation=(0.0, 0.0, 0.0))
 
    Set a sensor's mount pose. Only before start() (config window).
 
-   :param instance_id: Aircraft instance ID.
    :param name: Sensor name.
    :param position: (x, y, z) in meters, aircraft origin frame.
    :param orientation: (roll, pitch, yaw) in degrees (default no rotation).
@@ -288,17 +276,12 @@ Sensors
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
        FAILED_PRECONDITION if the sim has already started.
 
-.. py:method:: Aircraft.set_sensor_pose(name, position, orientation=(0.0, 0.0, 0.0))
-
-   Set a sensor's mount pose (before start). See PteroSim.set_sensor_pose().
-
-.. py:method:: PteroSim.set_sensor_param(instance_id, name, *, enabled=None, update_hz=None, noise=None, logging=None)
+.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None)
 
    Update sensor parameters. Only the given (non-None) fields are applied.
 
    Only before start() (config window).
 
-   :param instance_id: Aircraft instance ID.
    :param name: Sensor name.
    :param enabled: Enable/disable the sensor.
    :param update_hz: Update rate in Hz (must be > 0).
@@ -309,35 +292,21 @@ Sensors
        FAILED_PRECONDITION if the sim has already started,
        INVALID_ARGUMENT if update_hz <= 0.
 
-.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None)
-
-   Update sensor params, only non-None fields (before start). See PteroSim.set_sensor_param().
-
 Actuator control
 ^^^^^^^^^^^^^^^^
 
-.. py:method:: PteroSim.set_actuator_controls(instance_id, controls, timestamp_usec=0)
+.. py:method:: Aircraft.set_controls(controls, timestamp_usec=0)
 
-   Send normalized actuator channel values directly to the aircraft.
+   Send normalized actuator channel values directly to this aircraft.
 
    This bypasses autopilot control and is commonly used in RL motor-control loops.
 
-   :param instance_id: Aircraft instance ID.
-   :param controls: Actuator channel values (mapping depends on aircraft configuration).
+   :param controls: Actuator channel values; use actuator_config() to learn the layout.
    :param timestamp_usec: Optional command timestamp in microseconds.
 
-.. py:method:: Aircraft.set_controls(controls, timestamp_usec=0)
+.. py:method:: Aircraft.actuator_config()
 
-   Send actuator controls to this aircraft (bypasses autopilot).
-
-   :param controls: Normalized channel values. Use actuator_config() to learn layout.
-   :param timestamp_usec: Timestamp in microseconds (0 = use current time).
-
-.. py:method:: PteroSim.get_actuator_configuration(instance_id)
-
-   Get actuator channel layout for an aircraft.
-
-   :param instance_id: Aircraft instance ID.
+   Get actuator channel layout for this aircraft.
 
    :returns:
 
@@ -349,17 +318,12 @@ Actuator control
              component_index, input_min, input_max, name.
    :rtype: Actuator mapping and channel count. ActuatorConfiguration fields
 
-.. py:method:: Aircraft.actuator_config()
-
-   Get actuator configuration for this aircraft.
-
-.. py:method:: PteroSim.set_attitude_command(instance_id, roll_rad=0.0, pitch_rad=0.0, yaw_rate_rad_sec=0.0, throttle=0.0, enabled=True)
+.. py:method:: Aircraft.set_attitude(roll_rad=0.0, pitch_rad=0.0, yaw_rate_rad_sec=0.0, throttle=0.0, enabled=True)
 
    Send attitude command to the QuadX attitude controller running in C++ at physics rate.
 
-   When enabled, this controller overrides motor throttles from set_actuator_controls().
+   When enabled, this controller overrides motor throttles from set_controls().
 
-   :param instance_id: Aircraft instance ID.
    :param roll_rad: Desired roll angle in radians.
    :param pitch_rad: Desired pitch angle in radians.
    :param yaw_rate_rad_sec: Desired yaw rate in radians per second.
@@ -369,34 +333,19 @@ Actuator control
 Navigation
 ^^^^^^^^^^
 
-.. py:method:: PteroSim.go_to(instance_id, x, y, z, yaw=0.0, *, acceptance_radius_cm=0.0)
+.. py:method:: Aircraft.go_to(x, y, z, yaw=0.0, *, acceptance_radius_cm=0.0)
 
    Fly to a UE world position (cm) via pilot sticks and hold the given yaw.
 
-   Also available on the Aircraft handle as ``drone.go_to(...)``.
-
-   :param instance_id: Aircraft instance ID.
    :param x: Target X position in UE cm.
    :param y: Target Y position in UE cm.
    :param z: Target Z position in UE cm.
    :param yaw: Desired yaw in degrees (default 0.0).
    :param acceptance_radius_cm: Arrival radius in cm (0 = controller default).
 
-.. py:method:: Aircraft.go_to(x, y, z, yaw=0.0, *, acceptance_radius_cm=0.0)
-
-   Fly to a UE world position (cm) and hold yaw.
-
-.. py:method:: PteroSim.cancel_go_to(instance_id)
-
-   Stop GoTo navigation and zero pilot sticks.
-
-   Also available on the Aircraft handle as ``drone.cancel_go_to()``.
-
-   :param instance_id: Aircraft instance ID.
-
 .. py:method:: Aircraft.cancel_go_to()
 
-   Stop GoTo navigation.
+   Stop GoTo navigation and zero pilot sticks.
 
 Racing
 ^^^^^^
@@ -429,11 +378,9 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
              Each GatePose has gate_index, x/y/z (UE cm), forward_x/y/z.
    :rtype: RaceTrackInfo
 
-.. py:method:: PteroSim.get_race_state(instance_id)
+.. py:method:: Aircraft.race_state()
 
-   Get race progress for a specific aircraft.
-
-   :param instance_id: Aircraft instance ID.
+   Get race progress for this aircraft.
 
    :returns:
 
@@ -445,24 +392,20 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
                the last gate was passed. 0.0 if no gate passed yet.
    :rtype: RaceState
 
-.. py:method:: PteroSim.get_next_gate_pose(instance_id)
+.. py:method:: Aircraft.next_gate_pose()
 
-   Get the pose of the next gate for an aircraft.
+   Get the pose of the next gate for this aircraft.
 
    Shortcut for RL observation — avoids separate get_track_info() +
-   get_race_state() calls.
-
-   :param instance_id: Aircraft instance ID.
+   race_state() calls.
 
    :returns: Pose of the next gate.
 
-.. py:method:: PteroSim.reset_race(instance_id)
+.. py:method:: Aircraft.reset_race()
 
-   Reset race tracking for one aircraft (next gate, gates passed, laps, timing).
+   Reset race tracking for this aircraft (next gate, gates passed, laps, timing).
 
    Use at the start of each RL episode.
-
-   :param instance_id: Aircraft instance ID.
 
 .. py:method:: PteroSim.reset_all_races()
 
@@ -539,8 +482,6 @@ Values returned by the methods above. You do not construct these.
 .. py:class:: AircraftStatus
 
    Status of a spawned aircraft.
-
-   Raises grpc.RpcError (FAILED_PRECONDITION) if the world lacks a GeoReferencingSystem.
 
    .. py:attribute:: instance_id
       :type: int
