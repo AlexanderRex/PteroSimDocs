@@ -201,9 +201,14 @@ Aircraft management
 Sensors
 ^^^^^^^
 
-.. py:method:: Aircraft.imu()
+Readings are the noisy sensor outputs. Reads require the simulation started; reconfiguration (add/remove/pose/param) only before ``start()``.
 
-   Get IMU reading for this aircraft.
+.. py:method:: Aircraft.imu(sensor_name="")
+
+   Get IMU reading for this aircraft. Requires the simulation started.
+
+   :param sensor_name: Sensor name from list_sensors(); empty selects the
+                       single IMU aboard (error if there are several).
 
    :returns:
 
@@ -213,7 +218,91 @@ Sensors
              - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
    :rtype: IMU sample in body FRD frame
 
-   :raises grpc.RpcError: NOT_FOUND if the aircraft has no IMU sensor.
+   :raises grpc.RpcError: NOT_FOUND if no such sensor, INVALID_ARGUMENT if the
+       named sensor is of a different type, FAILED_PRECONDITION if the
+       simulation is not started, no sample has been taken yet, the
+       sensor is disabled, or the empty name is ambiguous.
+
+.. py:method:: Aircraft.gps(sensor_name="")
+
+   Get GNSS reading for this aircraft. Requires the simulation started.
+
+   :param sensor_name: Sensor name from list_sensors(); empty selects the
+                       single GPS aboard (error if there are several).
+
+   :returns:
+
+             - **latitude_deg** / **longitude_deg** (float): WGS84 position in degrees.
+             - **altitude_asl_m** (float): Altitude above sea level in meters.
+             - **velocity_ned** (tuple[float, float, float]): NED velocity in m/s.
+             - **ground_speed_ms** (float): Ground speed in m/s.
+             - **course_over_ground_deg** (float): Course over ground in degrees.
+             - **fix_type** (int), **hdop** / **vdop** (float),
+               **satellites_visible** (int): Fix quality.
+             - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
+   :rtype: GPSReading
+
+   :raises grpc.RpcError: NOT_FOUND if no such sensor, INVALID_ARGUMENT if the
+       named sensor is of a different type, FAILED_PRECONDITION if the
+       simulation is not started, no sample has been taken yet, the
+       sensor is disabled, or the empty name is ambiguous.
+
+.. py:method:: Aircraft.barometer(sensor_name="")
+
+   Get barometer reading for this aircraft. Requires the simulation started.
+
+   :param sensor_name: Sensor name from list_sensors(); empty selects the
+                       single barometer aboard (error if there are several).
+
+   :returns:
+
+             - **abs_pressure_hpa** (float): Absolute pressure in hPa.
+             - **pressure_altitude_m** (float): Pressure altitude in meters.
+             - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
+   :rtype: BarometerReading
+
+   :raises grpc.RpcError: NOT_FOUND if no such sensor, INVALID_ARGUMENT if the
+       named sensor is of a different type, FAILED_PRECONDITION if the
+       simulation is not started, no sample has been taken yet, the
+       sensor is disabled, or the empty name is ambiguous.
+
+.. py:method:: Aircraft.airspeed(sensor_name="")
+
+   Get airspeed sensor reading for this aircraft. Requires the simulation started.
+
+   :param sensor_name: Sensor name from list_sensors(); empty selects the
+                       single airspeed sensor aboard (error if there are several).
+
+   :returns:
+
+             - **diff_pressure_hpa** (float): Differential pressure in hPa
+               (signed: negative = reverse flow).
+             - **airspeed_ms** (float): Indicated airspeed magnitude in m/s.
+             - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
+   :rtype: AirspeedReading
+
+   :raises grpc.RpcError: NOT_FOUND if no such sensor, INVALID_ARGUMENT if the
+       named sensor is of a different type, FAILED_PRECONDITION if the
+       simulation is not started, no sample has been taken yet, the
+       sensor is disabled, or the empty name is ambiguous.
+
+.. py:method:: Aircraft.temperature(sensor_name="")
+
+   Get temperature sensor reading for this aircraft. Requires the simulation started.
+
+   :param sensor_name: Sensor name from list_sensors(); empty selects the
+                       single temperature sensor aboard (error if there are several).
+
+   :returns:
+
+             - **temperature_c** (float): Temperature in degrees Celsius.
+             - **timestamp_simulation_s** (float): Simulation timestamp in seconds.
+   :rtype: TemperatureReading
+
+   :raises grpc.RpcError: NOT_FOUND if no such sensor, INVALID_ARGUMENT if the
+       named sensor is of a different type, FAILED_PRECONDITION if the
+       simulation is not started, no sample has been taken yet, the
+       sensor is disabled, or the empty name is ambiguous.
 
 .. py:method:: Aircraft.camera(sensor_name="Camera", *, width=0, height=0, timeout=10)
 
@@ -422,25 +511,6 @@ Data types
 
 Values returned by the methods above. You do not construct these.
 
-.. py:class:: CameraFrame
-
-   Raw BGR camera frame from PteroSim.
-
-   .. py:attribute:: image
-      :type: ndarray
-
-   .. py:attribute:: width
-      :type: int
-
-   .. py:attribute:: height
-      :type: int
-
-   .. py:attribute:: timestamp
-      :type: float
-
-   .. py:attribute:: sequence_number
-      :type: int
-
 .. py:class:: SimStatus
 
    Simulation status from status().
@@ -478,6 +548,16 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: time_scale
       :type: float
+
+.. py:class:: AircraftClass
+
+   Aircraft type from list_aircraft_classes().
+
+   .. py:attribute:: name
+      :type: str
+
+   .. py:attribute:: description
+      :type: str
 
 .. py:class:: AircraftStatus
 
@@ -546,15 +626,175 @@ Values returned by the methods above. You do not construct these.
       :type: float
       :value: 0.0
 
-.. py:class:: AircraftClass
+.. py:class:: IMUReading
 
-   Aircraft type from list_aircraft_classes().
+   IMU sensor reading (body FRD: X=forward, Y=right, Z=down).
+
+   .. py:attribute:: acceleration
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: angular_velocity
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: magnetic_field
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: timestamp_simulation_s
+      :type: float
+      :value: 0.0
+
+.. py:class:: GPSReading
+
+   GNSS fix sample (WGS84).
+
+   .. py:attribute:: latitude_deg
+      :type: float
+
+   .. py:attribute:: longitude_deg
+      :type: float
+
+   .. py:attribute:: altitude_asl_m
+      :type: float
+
+   .. py:attribute:: velocity_ned
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: ground_speed_ms
+      :type: float
+
+   .. py:attribute:: course_over_ground_deg
+      :type: float
+
+   .. py:attribute:: fix_type
+      :type: int
+
+   .. py:attribute:: hdop
+      :type: float
+
+   .. py:attribute:: vdop
+      :type: float
+
+   .. py:attribute:: satellites_visible
+      :type: int
+
+   .. py:attribute:: timestamp_simulation_s
+      :type: float
+      :value: 0.0
+
+.. py:class:: BarometerReading
+
+   Barometer sample.
+
+   .. py:attribute:: abs_pressure_hpa
+      :type: float
+
+   .. py:attribute:: pressure_altitude_m
+      :type: float
+
+   .. py:attribute:: timestamp_simulation_s
+      :type: float
+      :value: 0.0
+
+.. py:class:: AirspeedReading
+
+   Differential-pressure airspeed sample.
+
+   .. py:attribute:: diff_pressure_hpa
+      :type: float
+
+   .. py:attribute:: airspeed_ms
+      :type: float
+
+   .. py:attribute:: timestamp_simulation_s
+      :type: float
+      :value: 0.0
+
+.. py:class:: TemperatureReading
+
+   Ambient temperature sample.
+
+   .. py:attribute:: temperature_c
+      :type: float
+
+   .. py:attribute:: timestamp_simulation_s
+      :type: float
+      :value: 0.0
+
+.. py:class:: SensorInfo
+
+   One sensor's identity and pose (from list_sensors()).
 
    .. py:attribute:: name
       :type: str
 
-   .. py:attribute:: description
+   .. py:attribute:: type
       :type: str
+
+   .. py:attribute:: enabled
+      :type: bool
+
+   .. py:attribute:: update_hz
+      :type: float
+
+   .. py:attribute:: position
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: orientation
+      :type: tuple[float, float, float]
+
+.. py:class:: CameraFrame
+
+   Raw BGR camera frame from PteroSim.
+
+   .. py:attribute:: image
+      :type: ndarray
+
+   .. py:attribute:: width
+      :type: int
+
+   .. py:attribute:: height
+      :type: int
+
+   .. py:attribute:: timestamp
+      :type: float
+
+   .. py:attribute:: sequence_number
+      :type: int
+
+.. py:class:: ActuatorMapping
+
+   Single actuator channel mapping.
+
+   .. py:attribute:: channel
+      :type: int
+
+   .. py:attribute:: type
+      :type: str
+
+   .. py:attribute:: component_index
+      :type: int
+
+   .. py:attribute:: input_min
+      :type: float
+
+   .. py:attribute:: input_max
+      :type: float
+
+   .. py:attribute:: name
+      :type: str
+
+.. py:class:: ActuatorConfiguration
+
+   Actuator layout for an aircraft.
+
+   .. py:attribute:: instance_id
+      :type: int
+
+   .. py:attribute:: channel_count
+      :type: int
+
+   .. py:attribute:: mappings
+      :type: list[ActuatorMapping]
 
 .. py:class:: GatePose
 
@@ -609,77 +849,3 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: last_gate_passed_time
       :type: float
-
-.. py:class:: IMUReading
-
-   IMU sensor reading (body FRD: X=forward, Y=right, Z=down).
-
-   .. py:attribute:: acceleration
-      :type: tuple[float, float, float]
-
-   .. py:attribute:: angular_velocity
-      :type: tuple[float, float, float]
-
-   .. py:attribute:: magnetic_field
-      :type: tuple[float, float, float]
-
-   .. py:attribute:: timestamp_simulation_s
-      :type: float
-      :value: 0.0
-
-.. py:class:: SensorInfo
-
-   One sensor's identity and pose (from list_sensors()).
-
-   .. py:attribute:: name
-      :type: str
-
-   .. py:attribute:: type
-      :type: str
-
-   .. py:attribute:: enabled
-      :type: bool
-
-   .. py:attribute:: update_hz
-      :type: float
-
-   .. py:attribute:: position
-      :type: tuple[float, float, float]
-
-   .. py:attribute:: orientation
-      :type: tuple[float, float, float]
-
-.. py:class:: ActuatorConfiguration
-
-   Actuator layout for an aircraft.
-
-   .. py:attribute:: instance_id
-      :type: int
-
-   .. py:attribute:: channel_count
-      :type: int
-
-   .. py:attribute:: mappings
-      :type: list[ActuatorMapping]
-
-.. py:class:: ActuatorMapping
-
-   Single actuator channel mapping.
-
-   .. py:attribute:: channel
-      :type: int
-
-   .. py:attribute:: type
-      :type: str
-
-   .. py:attribute:: component_index
-      :type: int
-
-   .. py:attribute:: input_min
-      :type: float
-
-   .. py:attribute:: input_max
-      :type: float
-
-   .. py:attribute:: name
-      :type: str
