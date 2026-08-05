@@ -10,11 +10,12 @@ SITL simulation with PX4
       :alt: Control Source panel with PX4 selected
       :class: no-float-left
 
-3. **Run PX4 SITL** on Linux/WSL with lockstep and put your **Ubuntu IP address** in ``[IP-address]``:
+3. **Run PX4 SITL** in WSL2 with lockstep. Set ``PX4_SIM_HOSTNAME`` to the **Windows host IP as seen from WSL** (PX4 connects from WSL to PteroSim on Windows; this is the default gateway, often ``172.20.0.1``):
 
    .. code-block:: bash
 
-      PX4_SIM_HOSTNAME=[IP-address] PX4_LOCKSTEP=1 PX4_SIM_SPEED_FACTOR=1 make px4_sitl none_iris
+      export PX4_SIM_HOSTNAME=$(ip route | awk '/default/ {print $3; exit}')
+      PX4_LOCKSTEP=1 PX4_SIM_SPEED_FACTOR=1 make px4_sitl none_iris
 
 4. Launch **QGroundControl** and open **Application Settings**:
 
@@ -22,7 +23,7 @@ SITL simulation with PX4
       :alt: QGroundControl main menu and Application Settings
       :align: left
 
-5. Add or edit a **Comm Link** to your PX4 instance (UDP to the machine where SITL runs, typically port **14550**):
+5. Add or edit a **Comm Link** to your PX4 instance (UDP to the **WSL IP** where SITL runs — ``hostname -I`` in Ubuntu — typically port **14550**):
 
    .. image:: Images/qgc_comm_link.png
       :alt: QGroundControl communication link configuration
