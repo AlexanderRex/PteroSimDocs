@@ -340,10 +340,17 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    :param name: Desired name; empty uses the class default. A name already taken
                 on the aircraft is auto-suffixed (IMU -> IMU1).
 
+   For a vehicle with a folder of its own, the sensor is also written into its
+   Sensors.xml, so it is still there after a restart. If that file cannot be
+   written the sensor is taken back off and the call fails, rather than leaving
+   the aircraft and its file disagreeing. A built-in aircraft has nowhere to
+   write, so there the sensor lasts for the session, as it always has.
+
    :returns: The final unique name assigned to the new sensor.
 
    :raises grpc.RpcError: FAILED_PRECONDITION if the sim has already started,
-       INVALID_ARGUMENT for an unknown sensor_type.
+       INVALID_ARGUMENT for an unknown sensor_type, INTERNAL if the
+       vehicle's file could not be written.
 
 .. py:method:: Aircraft.remove_sensor(name)
 
@@ -351,8 +358,13 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    :param name: Sensor name (see list_sensors()).
 
+   Taken out of the vehicle's Sensors.xml too, where it has one -- and the file
+   is written first, so one that cannot be written leaves the sensor in place
+   instead of the two disagreeing.
+
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started.
+       FAILED_PRECONDITION if the sim has already started,
+       INTERNAL if the vehicle's file could not be written.
 
 .. py:method:: Aircraft.set_sensor_pose(name, position, orientation=(0.0, 0.0, 0.0))
 
@@ -431,6 +443,19 @@ Navigation
    :param z: Target Z position in UE cm.
    :param yaw: Desired yaw in degrees (default 0.0).
    :param acceptance_radius_cm: Arrival radius in cm (0 = controller default).
+
+.. py:method:: Aircraft.land(yaw_deg=0.0, *, acceptance_radius_cm=0.0)
+
+   Descend at current XY using live AGL, then cut motors near ground.
+
+   :param yaw_deg: Desired yaw during descent in degrees (default 0.0).
+   :param acceptance_radius_cm: XY hold radius in cm (0 = controller default
+                                10 cm; must be 0 or >= 1).
+
+   .. note::
+
+      Returns immediately; landing completes asynchronously.
+      No completion notification is provided.
 
 .. py:method:: Aircraft.cancel_go_to()
 
