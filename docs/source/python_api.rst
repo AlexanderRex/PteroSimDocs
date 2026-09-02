@@ -198,6 +198,18 @@ Aircraft management
 
    Destroy this aircraft. Returns remaining aircraft count.
 
+.. py:method:: Aircraft.set_flight_stack(stack)
+
+   Choose which autopilot flies this aircraft, the same choice the outliner offers.
+
+   Fits that stack's connector, takes the others off, and makes it the active control source.
+   Refused while the simulation runs -- stop it first. The choice belongs to this aircraft and is
+   not written to its files, so a respawn comes back on the stack its Controls.xml names.
+
+   :param stack: "PX4", "ArduPilot" or "BetaFlight"; "" leaves the aircraft driven by nobody.
+
+   :returns: The stack now fitted.
+
 Sensors
 ^^^^^^^
 
