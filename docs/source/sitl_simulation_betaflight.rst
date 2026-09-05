@@ -26,7 +26,15 @@ SITL simulation with BetaFlight
 
    Leave it running.
 
-5. **Launch the Betaflight App** and connect to ``ws://127.0.0.1:6761``.
+5. **Launch the Betaflight App** and connect to ``ws://127.0.0.1:6761``:
+
+   .. image:: Images/betaflight_manual_connect.png
+      :alt: Betaflight Configurator manual connection
+      :align: left
+
+   .. image:: Images/betaflight_manual_connect_2.png
+      :alt: Betaflight Configurator manual connection
+      :align: left
 
 6. **Launch the RC bridge**:
 
