@@ -9,7 +9,7 @@ SITL simulation with BetaFlight
 
 2. In the control source panel choose **BetaFlight**.
 
-3. **Launch BetaFlight SITL** in a new terminal. PteroSim is on the same machine, so the default localhost address is correct and no ``--ip`` flag is needed:
+3. **Launch BetaFlight SITL**:
 
    .. code-block:: bash
 
@@ -18,7 +18,7 @@ SITL simulation with BetaFlight
 
    Leave it running.
 
-4. **Launch websockify** in a new terminal. It bridges the BetaFlight SITL TCP interface (port 5761) to the WebSocket endpoint used by the App:
+4. **Launch websockify**:
 
    .. code-block:: bash
 
@@ -26,9 +26,9 @@ SITL simulation with BetaFlight
 
    Leave it running.
 
-5. **Launch the Betaflight App** and connect manually to ``ws://127.0.0.1:6761``.
+5. **Launch the Betaflight App** and connect to ``ws://127.0.0.1:6761``.
 
-6. **Launch the RC bridge** in a new terminal. It sends controller input to BetaFlight on UDP port 9004:
+6. **Launch the RC bridge**:
 
    .. code-block:: bash
 
