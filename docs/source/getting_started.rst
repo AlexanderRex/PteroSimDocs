@@ -34,6 +34,8 @@ Software requirements
 * `QGroundControl <https://qgroundcontrol.com/>`_
 * `ArduPilot <https://ardupilot.org/ardupilot>`_
 * `Mission Planner <https://ardupilot.org/planner/docs/mission-planner-installation.html>`_
+* `BetaFlight <https://github.com/betaflight/betaflight>`_
+* `Betaflight Configurator <https://github.com/betaflight/betaflight-configurator>`_
 
 Setup
 -----

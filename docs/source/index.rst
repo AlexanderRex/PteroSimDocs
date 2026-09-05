@@ -27,6 +27,7 @@ SITL Simulation
 
 :doc:`sitl_simulation_px4` — PX4 SITL workflow with QGroundControl.
 :doc:`sitl_simulation_ardupilot` — ArduPilot SITL workflow with Mission Planner.
+:doc:`sitl_simulation_betaflight` — BetaFlight SITL workflow with the Betaflight App.
 
 Python API
 ----------
@@ -47,5 +48,6 @@ Headless & Automation
    first_steps
    sitl_simulation_px4
    sitl_simulation_ardupilot
+   sitl_simulation_betaflight
    python_api
    headless
