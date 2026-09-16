@@ -382,18 +382,24 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    Set a sensor's mount pose. Only before start() (config window).
 
+   Written to the vehicle's Sensors.xml as well, where it has one, so the
+   pose is still there after a restart. A built-in aircraft has nowhere to
+   write, so there it lasts for the session.
+
    :param name: Sensor name.
    :param position: (x, y, z) in meters, aircraft origin frame.
    :param orientation: (roll, pitch, yaw) in degrees (default no rotation).
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started.
+       FAILED_PRECONDITION if the sim has already started,
+       INTERNAL if the vehicle's file could not be written.
 
 .. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None)
 
    Update sensor parameters. Only the given (non-None) fields are applied.
 
-   Only before start() (config window).
+   Only before start() (config window). Written to the vehicle's Sensors.xml
+   as well, where it has one, so the change is still there after a restart.
 
    :param name: Sensor name.
    :param enabled: Enable/disable the sensor.
@@ -403,7 +409,8 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
        FAILED_PRECONDITION if the sim has already started,
-       INVALID_ARGUMENT if update_hz <= 0.
+       INVALID_ARGUMENT if update_hz <= 0,
+       INTERNAL if the vehicle's file could not be written.
 
 Actuator control
 ^^^^^^^^^^^^^^^^
