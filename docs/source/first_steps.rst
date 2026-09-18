@@ -6,6 +6,10 @@ First Steps
 After launching PteroSim, find the **Add** button in the upper-right corner of the screen.
 Clicking it opens the aircraft and payload spawn panel:
 
+.. image:: Images/add_button.png
+   :alt: Add button in the upper-right corner of the screen
+   :class: no-float-left
+
 2. On the spawn panel, press and hold the cursor on your target aircraft, then drag it into the scene. Spawning is only possible when the simulation is stopped.
 
 3. Press **Start** button to start the simulation.
