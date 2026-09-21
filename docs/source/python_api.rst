@@ -331,7 +331,8 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
              - **image** (numpy.ndarray): BGR array (H, W, 3), dtype=uint8.
              - **width** (int): Frame width in pixels.
              - **height** (int): Frame height in pixels.
-             - **timestamp** (float): SimClock time when frame was captured.
+             - **timestamp** (float): The aircraft's simulation time when the capture was requested — the same clock
+               as ``imu()``/``gps()`` ``timestamp_simulation_s``, so a frame can be matched to a pose.
              - **sequence_number** (int): Monotonically increasing frame counter.
    :rtype: CameraFrame
 
@@ -341,7 +342,8 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    Read-only — allowed at any time, before or after start().
 
-   :returns: List of SensorInfo (name, type, enabled, update_hz, position, orientation).
+   :returns: List of SensorInfo (name, type, enabled, update_hz, position, orientation,
+             fields -- the type's own attributes as text, keyed as set_sensor_param() takes them).
 
 .. py:method:: Aircraft.add_sensor(sensor_type, name="")
 
@@ -352,17 +354,15 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    :param name: Desired name; empty uses the class default. A name already taken
                 on the aircraft is auto-suffixed (IMU -> IMU1).
 
-   For a vehicle with a folder of its own, the sensor is also written into its
-   Sensors.xml, so it is still there after a restart. If that file cannot be
-   written the sensor is taken back off and the call fails, rather than leaving
-   the aircraft and its file disagreeing. A built-in aircraft has nowhere to
-   write, so there the sensor lasts for the session, as it always has.
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change.
 
    :returns: The final unique name assigned to the new sensor.
 
    :raises grpc.RpcError: FAILED_PRECONDITION if the sim has already started,
-       INVALID_ARGUMENT for an unknown sensor_type, INTERNAL if the
-       vehicle's file could not be written.
+       INVALID_ARGUMENT for an unknown sensor_type.
 
 .. py:method:: Aircraft.remove_sensor(name)
 
@@ -370,47 +370,64 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    :param name: Sensor name (see list_sensors()).
 
-   Taken out of the vehicle's Sensors.xml too, where it has one -- and the file
-   is written first, so one that cannot be written leaves the sensor in place
-   instead of the two disagreeing.
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change.
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started,
-       INTERNAL if the vehicle's file could not be written.
+       FAILED_PRECONDITION if the sim has already started.
 
 .. py:method:: Aircraft.set_sensor_pose(name, position, orientation=(0.0, 0.0, 0.0))
 
    Set a sensor's mount pose. Only before start() (config window).
 
-   Written to the vehicle's Sensors.xml as well, where it has one, so the
-   pose is still there after a restart. A built-in aircraft has nowhere to
-   write, so there it lasts for the session.
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change. One exception: the build panel saves every listed sensor's pose
+   from the component, so a pose set here on a sensor the file names is written
+   with the next edit made in the panel.
 
    :param name: Sensor name.
    :param position: (x, y, z) in meters, aircraft origin frame.
    :param orientation: (roll, pitch, yaw) in degrees (default no rotation).
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started,
-       INTERNAL if the vehicle's file could not be written.
+       FAILED_PRECONDITION if the sim has already started.
 
-.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None)
+.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None, **fields)
 
    Update sensor parameters. Only the given (non-None) fields are applied.
 
-   Only before start() (config window). Written to the vehicle's Sensors.xml
-   as well, where it has one, so the change is still there after a restart.
+   Only before start() (config window).
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change.
+
+   Any further keyword is one of the sensor type's own attributes, named as
+   Sensors.xml names them -- the keys list_sensors() reports in ``fields``.
+   A camera, for example, takes ``field_of_view``, ``image_width``,
+   ``image_height``, ``stream``, ``stream_port`` and ``stream_host`` among others::
+
+       drone.set_sensor_param("camera", update_hz=30, stream=True)
+       sim.start()   # RTP/H.264 now flows to udp://127.0.0.1:5600 (+ instance id)
 
    :param name: Sensor name.
    :param enabled: Enable/disable the sensor.
    :param update_hz: Update rate in Hz (must be > 0).
    :param noise: Enable/disable sensor noise.
    :param logging: Enable/disable per-sensor logging.
+   :param \*\*fields: The type's own attributes; bools, numbers and strings. None
+                      skips the field, like the explicit keywords.
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
        FAILED_PRECONDITION if the sim has already started,
-       INVALID_ARGUMENT if update_hz <= 0,
-       INTERNAL if the vehicle's file could not be written.
+       INVALID_ARGUMENT if update_hz <= 0, a field is not one of the
+       type's attributes, its value is not one the attribute takes (a
+       whole number for an integer attribute), or the sensor settled on a
+       different value than the one sent (a camera clamps its size and FOV).
 
 Actuator control
 ^^^^^^^^^^^^^^^^
@@ -785,6 +802,9 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: orientation
       :type: tuple[float, float, float]
+
+   .. py:attribute:: fields
+      :type: dict[str, str]
 
 .. py:class:: CameraFrame
 
