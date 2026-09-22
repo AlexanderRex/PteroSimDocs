@@ -467,6 +467,99 @@ Actuator control
    :param throttle: Base thrust in range [0, 1].
    :param enabled: Enable or disable the attitude controller.
 
+Gimbal
+^^^^^^
+
+A camera mount has one aimer: the autopilot's Gimbal channels, or this API. ``set_gimbal_source()`` says which, and ``set_gimbal()`` is refused while the channels hold the mount rather than being overwritten by the next control frame.
+
+.. py:method:: Aircraft.list_gimbals()
+
+   List the camera mounts this aircraft carries.
+
+   Read-only and allowed at any time: before start() every mount reads as at zero,
+   which is where it is.
+
+   :returns: List of GimbalInfo, sorted by name, so the order is the same on every run.
+             An aircraft carrying no mounts gives an empty list. ``source`` says which
+             aimer holds each mount -- check it before you aim, the way ``fields`` tells
+             you what set_sensor_param() will take.
+
+.. py:method:: Aircraft.gimbal(gimbal_name="")
+
+   Where one mount points now, and where it was last sent.
+
+   The head is not at the angle by the time set_gimbal() returns -- it slews there
+   at the rate and lag the vehicle's ``<gimbal>`` line gives the servos, so poll
+   ``settled`` rather than assuming it arrived::
+
+       drone.set_gimbal(pitch_deg=-30)
+       while not drone.gimbal().settled:
+           time.sleep(0.05)
+
+   :param gimbal_name: Mount name; empty means the aircraft's only mount.
+
+   :returns: GimbalInfo. ``current_deg`` is where the head is, ``target_deg`` where it is
+             going; they differ whenever the mount has a lag or a slew cap.
+
+   :raises grpc.RpcError: NOT_FOUND if no mount has that name or the aircraft carries
+       none, FAILED_PRECONDITION if the name is empty and it carries several.
+
+.. py:method:: Aircraft.set_gimbal(gimbal_name="", *, roll_deg=None, pitch_deg=None, yaw_deg=None)
+
+   Aim a camera mount, in degrees from where it is fitted.
+
+   An axis left as None stays where it was last sent, so a loop can pan without
+   restating the tilt. The three are joint angles -- the post yaws, the fork on it
+   rolls, the camera in the fork pitches -- not an euler rotation of the head, and
+   the signs are the vehicle's frame (X forward, Y right, Z up), not the FRD the
+   sensor readings use.
+
+   Only a mount whose ``source`` is ``"api"`` takes this. While the autopilot's
+   Gimbal channels hold the mount the call is refused rather than overwritten a
+   millisecond later by the next control frame, so hand it over first::
+
+       drone.set_gimbal_source("api")
+       drone.set_gimbal(pitch_deg=-30, yaw_deg=90)
+
+   Needs the simulation running: the head is moved by the runner's steps, so an aim
+   taken before start() is refused rather than silently going nowhere.
+
+   Session-only, like every change made through this API: the vehicle's files are
+   never written. stop() returns every mount to its fitted pose, so a script that
+   stops must aim again.
+
+   :param gimbal_name: Mount name; empty means the aircraft's only mount.
+   :param roll_deg: Roll from the fitted pose in degrees; None leaves the axis.
+   :param pitch_deg: Pitch from the fitted pose in degrees; None leaves the axis.
+   :param yaw_deg: Yaw from the fitted pose in degrees; None leaves the axis.
+
+   :raises ValueError: If no axis is given.
+   :raises grpc.RpcError: NOT_FOUND if no mount has that name or the aircraft carries
+       none, FAILED_PRECONDITION if the simulation is not running, if the name is
+       empty and the aircraft carries several mounts, or if the autopilot's
+       channels hold the mount, INVALID_ARGUMENT if an angle is not finite.
+
+.. py:method:: Aircraft.set_gimbal_source(source, gimbal_name="")
+
+   Say who aims a mount: ``"api"`` (this API) or ``"mavlink"`` (the autopilot).
+
+   Both aimers write the same target vector, so a mount has exactly one of them.
+   ``"mavlink"`` is every mount's default and means the Gimbal channels in the
+   vehicle's Controls.xml -- a mount that binds none simply never hears from them.
+   ``"api"`` makes the control frames pass the mount by whatever the file binds,
+   and is what set_gimbal() requires.
+
+   Session-only: the vehicle's <gimbal> line keeps whatever the panel authored, and
+   a respawn starts from that again. Allowed before start(), so a script can take a
+   mount before the first control frame arrives; unlike the aim, it survives stop().
+
+   :param source: ``"api"`` or ``"mavlink"``.
+   :param gimbal_name: Mount name; empty means the aircraft's only mount.
+
+   :raises ValueError: If source is neither ``"api"`` nor ``"mavlink"``.
+   :raises grpc.RpcError: NOT_FOUND if no mount has that name or the aircraft carries
+       none, FAILED_PRECONDITION if the name is empty and it carries several.
+
 Navigation
 ^^^^^^^^^^
 
@@ -913,3 +1006,35 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: last_gate_passed_time
       :type: float
+
+.. py:class:: GimbalInfo
+
+   A camera mount, from list_gimbals() and gimbal().
+
+   The angle triples are (roll, pitch, yaw) in degrees from where the mount is fitted.
+   They are three joint angles -- the post yaws, the fork on it rolls, the camera in the
+   fork pitches -- not an euler rotation of the head.
+
+   .. py:attribute:: name
+      :type: str
+
+   .. py:attribute:: parent
+      :type: str
+
+   .. py:attribute:: source
+      :type: str
+
+   .. py:attribute:: current_deg
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: target_deg
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: max_rates_deg_s
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: tau_seconds
+      :type: float
+
+   .. py:attribute:: settled
+      :type: bool
