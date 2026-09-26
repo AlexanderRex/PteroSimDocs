@@ -118,6 +118,63 @@ Simulation settings
 
    Returns current MAVLink bind address.
 
+Wind and turbulence
+^^^^^^^^^^^^^^^^^^^
+
+One wind for the whole world: the clouds, rain and trees move with it and every aircraft's flight model flies in it. Setting it needs an Edu or Pro license.
+
+.. py:method:: PteroSim.set_wind(*, speed_ms, from_deg)
+
+   Set the steady wind for the whole world. Needs an Edu or Pro license.
+
+   The clouds, rain and trees move with it and every aircraft's flight model
+   flies in it. Keyword-only, so a direction cannot land in the speed::
+
+       sim.set_wind(speed_ms=5.0, from_deg=270.0)
+
+   :param speed_ms: Wind speed in m/s, from 0 to 113.2 (the highest surface
+                    gust on record, WMO).
+   :param from_deg: Direction the wind blows FROM, degrees from true north
+                    (90 = from the east); any finite value, read modulo 360.
+
+   :raises grpc.RpcError: PERMISSION_DENIED without an Edu or Pro license,
+       INVALID_ARGUMENT for a speed out of that range or non-finite, or
+       a non-finite direction.
+
+.. py:method:: PteroSim.get_wind()
+
+   Get the steady wind.
+
+   :returns:
+
+             - **speed_ms** (float): Wind speed in m/s.
+             - **from_deg** (float): Direction the wind blows FROM, degrees from true
+               north, in [0, 360).
+   :rtype: WindState
+
+.. py:method:: PteroSim.set_turbulence(model, *, gain=0.0, rate_hz=0.0, severity=0)
+
+   Set the turbulence every aircraft flies in. Needs an Edu or Pro license.
+
+   Each model takes only the inputs JSBSim reads for it; leave the others at 0.
+
+   - ``"none"``: no turbulence.
+   - ``"culp"``: ``gain`` in (0, 1] and ``rate_hz`` in (0, 30].
+   - ``"milspec"``, ``"tustin"``: Dryden spectrum per MIL-F-8785C; ``severity``
+     1..7 (3 light, 4 moderate, 6 severe). The steady wind is their 20 ft wind:
+     below 1000 ft above sea level (JSBSim reads altitude ASL, not AGL) their
+     intensity is a tenth of it, above 2000 ft ASL it comes from the severity
+     curve alone.
+
+   :param model: "none", "culp", "milspec" or "tustin".
+   :param gain: Culp gain.
+   :param rate_hz: Culp rate in Hz.
+   :param severity: Milspec/Tustin probability-of-exceedance curve.
+
+   :raises ValueError: If model is not one of the four names.
+   :raises grpc.RpcError: PERMISSION_DENIED without an Edu or Pro license,
+       INVALID_ARGUMENT for a value out of range or one the model does not read.
+
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
 
@@ -701,6 +758,16 @@ Values returned by the methods above. You do not construct these.
       :type: str
 
    .. py:attribute:: time_scale
+      :type: float
+
+.. py:class:: WindState
+
+   The steady wind, from get_wind().
+
+   .. py:attribute:: speed_ms
+      :type: float
+
+   .. py:attribute:: from_deg
       :type: float
 
 .. py:class:: AircraftClass
