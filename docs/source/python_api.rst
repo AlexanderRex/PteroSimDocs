@@ -64,6 +64,11 @@ Simulation lifecycle
 
    Stop simulation.
 
+   :raises grpc.RpcError: FAILED_PRECONDITION ("stopped (Idle), not reloaded:
+       <aircraft>: <reason>") when an aircraft could not be reloaded.
+       The simulation is stopped regardless, and start() leaves that
+       aircraft unstarted until a later stop() reloads it or it is respawned.
+
 Simulation status
 ^^^^^^^^^^^^^^^^^
 
@@ -166,6 +171,11 @@ One wind for the whole world: the clouds, rain and trees move with it and every 
      intensity is a tenth of it, above 2000 ft ASL it comes from the severity
      curve alone.
 
+   Milspec and Tustin share JSBSim's turbulence filter state, which only a stop
+   clears: from start to stop a run keeps the first of the two it flies (the one
+   set before start counts). Switching to the other while running or paused is
+   refused; "none", "culp" and a new severity for the same form are not.
+
    :param model: "none", "culp", "milspec" or "tustin".
    :param gain: Culp gain.
    :param rate_hz: Culp rate in Hz.
@@ -173,7 +183,8 @@ One wind for the whole world: the clouds, rain and trees move with it and every 
 
    :raises ValueError: If model is not one of the four names.
    :raises grpc.RpcError: PERMISSION_DENIED without an Edu or Pro license,
-       INVALID_ARGUMENT for a value out of range or one the model does not read.
+       INVALID_ARGUMENT for a value out of range or one the model does not read,
+       FAILED_PRECONDITION for the other of Milspec and Tustin mid-run.
 
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
