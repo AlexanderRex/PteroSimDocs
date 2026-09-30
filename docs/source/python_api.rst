@@ -206,6 +206,7 @@ Aircraft management
    Use lat/lon/alt for geographic coordinates or x/y/z for Unreal Engine
    coordinates. Returns an Aircraft handle; all per-aircraft operations
    (controls, sensors, navigation, racing) are methods on the handle.
+   On a map with 3D tiles, the call waits until the ground under the point has loaded.
 
    :param aircraft_class: Aircraft type name (e.g. "F450", "DeltaQuad").
    :param lat: Latitude in degrees.
@@ -219,6 +220,9 @@ Aircraft management
    :param roll: Roll rotation in degrees (default 0.0).
 
    :returns: Handle to the spawned aircraft.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION ("Could not spawn <aircraft>: <reason>")
+       when the spawn is refused, e.g. the ground under the point did not load.
 
 .. py:method:: PteroSim.get_aircraft(instance_id)
 
