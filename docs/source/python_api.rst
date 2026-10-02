@@ -481,10 +481,13 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    Any further keyword is one of the sensor type's own attributes, named as
    Sensors.xml names them -- the keys list_sensors() reports in ``fields``.
    A camera, for example, takes ``field_of_view``, ``image_width``,
-   ``image_height``, ``stream``, ``stream_port`` and ``stream_host`` among others::
+   ``image_height``, ``stream``, ``stream_port``, ``stream_host`` and
+   ``stream_bitrate_kbps`` among others::
 
-       drone.set_sensor_param("camera", update_hz=30, stream=True)
+       drone.set_sensor_param("camera", update_hz=30, stream=True, stream_bitrate_kbps=8000)
        sim.start()   # RTP/H.264 now flows to udp://127.0.0.1:5600 (+ instance id)
+
+   Every streamed frame carries its capture time in an H.264 SEI (UUID ``PteroSimFrame v1``).
 
    :param name: Sensor name.
    :param enabled: Enable/disable the sensor.
