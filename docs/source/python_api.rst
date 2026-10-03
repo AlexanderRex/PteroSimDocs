@@ -90,8 +90,9 @@ Simulation status
 
    :returns:
 
-             - **simulation_time** (float): Current simulation time in seconds.
-             - **step_number** (int): Current simulation step number.
+             - **simulation_time** (float): Physics time in seconds of the aircraft furthest
+               along in this run. 0 while stopped, and from 0 again on every start().
+             - **step_number** (int): That aircraft's physics steps in this run.
              - **target_frequency_hz** (float): Target physics frequency.
              - **actual_frequency_hz** (float): Actual achieved frequency.
              - **clock_state** (str): "holding", "running", or "step_once".
