@@ -28,6 +28,19 @@ Classes
 
    Handle to a spawned aircraft, from PteroSim.spawn() or PteroSim.get_aircraft().
 
+.. py:class:: StepMode
+
+   Every aircraft as one environment, from PteroSim.enter_step_mode().
+
+   The aircraft move only when step() steps them, not with the clock. Leave with close(),
+   or use it as a context manager::
+
+       with sim.enter_step_mode() as mode:
+           r = mode.reset(seeds=range(mode.num_envs))
+           a = np.zeros((mode.num_envs, mode.action_size), np.float32)
+           for _ in range(1000):
+               r = mode.step(a, steps=10, reset=r.crashed)
+
 Connection
 ^^^^^^^^^^
 
@@ -90,8 +103,9 @@ Simulation status
 
    :returns:
 
-             - **simulation_time** (float): Current simulation time in seconds.
-             - **step_number** (int): Current simulation step number.
+             - **simulation_time** (float): Physics time in seconds of the aircraft furthest
+               along in this run. 0 while stopped, and from 0 again on every start().
+             - **step_number** (int): That aircraft's physics steps in this run.
              - **target_frequency_hz** (float): Target physics frequency.
              - **actual_frequency_hz** (float): Actual achieved frequency.
              - **clock_state** (str): "holding", "running", or "step_once".
@@ -109,7 +123,7 @@ Simulation settings
 
 .. py:method:: PteroSim.set_physics_frequency(hz)
 
-   Sets physics update rate in Hz.
+   Sets physics update rate in Hz. Only while the simulation is stopped.
 
    :param hz: Frequency in Hz.
 
@@ -249,7 +263,9 @@ Aircraft management
              - **step_count** (int): Number of simulation steps executed.
              - **crashed** (bool): Whether the aircraft has crashed.
              - **time_scale** (float): Current time scale.
-             - **mavlink_port** (int): MAVLink TCP port.
+             - **mavlink_port** (int): Deprecated, use link_port. The link port of a PX4 aircraft, 0 for any other.
+             - **flight_stack** (str): "PX4", "ArduPilot", "BetaFlight"; "" when no stack drives it.
+             - **link_port** (int): Port the flight stack connects to; 0 when no stack drives it.
    :rtype: List of AircraftStatus
 
    :raises grpc.RpcError: FAILED_PRECONDITION if the world lacks a GeoReferencingSystem.
@@ -260,9 +276,21 @@ Aircraft management
 
    :type: int
 
+.. py:property:: Aircraft.flight_stack
+
+   Flight stack that drives this aircraft ("PX4", "ArduPilot", "BetaFlight"); "" when none does.
+
+   :type: str
+
+.. py:property:: Aircraft.link_port
+
+   Port this aircraft's flight stack connects to, as the simulator binds it; 0 when no stack drives it.
+
+   :type: int
+
 .. py:property:: Aircraft.mavlink_port
 
-   MAVLink TCP port (4560 + instance_id).
+   Deprecated, use link_port. The link port of a PX4 aircraft; 0 for any other stack.
 
    :type: int
 
@@ -674,26 +702,31 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    Create or update a race track with the given gate definitions.
 
-   If no ARaceTrack exists in the world, one is spawned automatically.
-   After setting gates, all existing aircraft are registered with the track.
+   If no ARaceTrack exists in the world, one is spawned automatically at the
+   world origin. After setting gates, all existing aircraft are registered
+   with the track and every aircraft's race starts over.
 
    Each gate is a dict with position keys (x, y, z) and optional rotation
-   keys (yaw, pitch, roll, default 0).
+   keys (yaw, pitch, roll, default 0). The position is the gate's BASE
+   pivot (the bottom centre it stands on, UE cm, relative to the track);
+   the gate rotates about it.
 
    :param gates: List of gate definition dicts.
 
-   :returns: Resulting track info with actual gate center positions.
+   :returns: Resulting track info, whose x/y/z is each gate's OPENING centre, not
+             the base pivot given here.
 
 .. py:method:: PteroSim.get_track_info()
 
-   Get the race track layout (gate positions and forward vectors).
+   Get the race track layout: each gate's opening.
 
    :returns:
 
              - **gate_count** (int): Number of gates on the track.
              - **gates** (list[GatePose]): List of gate poses.
 
-             Each GatePose has gate_index, x/y/z (UE cm), forward_x/y/z.
+             Each GatePose has gate_index, x/y/z (the opening's centre, UE cm),
+             forward_x/y/z, up_x/y/z, and half_width/half_height (cm).
    :rtype: RaceTrackInfo
 
 .. py:method:: Aircraft.race_state()
@@ -734,6 +767,117 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 .. py:method:: PteroSim.remove_track()
 
    Remove current race track and all configured gates from the world.
+
+Step mode
+^^^^^^^^^
+
+For reinforcement learning: every aircraft is one environment, and one call steps them all as fast as the physics runs, never waiting for a frame.
+
+.. py:method:: PteroSim.enter_step_mode()
+
+   Make every aircraft one environment that moves only when StepMode.step() steps it.
+
+   The simulation must be started, and no aircraft driven by a flight stack. The set of
+   aircraft is fixed until StepMode.close(); hold(), stop() or removing an aircraft ends step mode.
+   Entering again ends the step mode entered before.
+
+   :returns: StepMode, also a context manager whose exit calls close().
+
+   :raises grpc.RpcError: FAILED_PRECONDITION naming every aircraft that cannot be an environment
+       and why, e.g. the simulation is not started, a flight stack drives it, or the
+       aircraft do not share one action layout.
+
+.. py:property:: StepMode.instance_ids
+
+   The aircraft, one per environment, in row order.
+
+   :type: tuple[int, ...]
+
+.. py:property:: StepMode.action_channels
+
+   One per action column, the same for every environment; each takes [input_min, input_max].
+
+   :type: tuple[ActuatorMapping, ...]
+
+.. py:property:: StepMode.observation_fields
+
+   Names of the observation columns, in order, as the simulator reports them.
+
+   :type: tuple[str, ...]
+
+.. py:property:: StepMode.num_envs
+
+   Number of environments: rows of the actions and the observations.
+
+   :type: int
+
+.. py:property:: StepMode.action_size
+
+   Action columns per environment.
+
+   :type: int
+
+.. py:property:: StepMode.observation_size
+
+   Observation columns per environment.
+
+   :type: int
+
+.. py:property:: StepMode.dt
+
+   Seconds per physics step.
+
+   :type: float
+
+.. py:property:: StepMode.max_steps_per_call
+
+   Most physics steps one step() call takes.
+
+   :type: int
+
+.. py:method:: StepMode.step(actions, steps=1, reset=None, seeds=None)
+
+   Hold the actions for ``steps`` physics steps in every environment, then observe them all.
+
+   An environment marked in ``reset`` goes back to its start instead and is not stepped
+   this call; its action is ignored. ``steps=0`` only observes (or only resets).
+
+   :param actions: (num_envs, action_size) array-like, each column within its channel's
+                   [input_min, input_max].
+   :param steps: Physics steps per environment, 0..max_steps_per_call.
+   :param reset: None, or (num_envs,) bool mask of the environments to restart.
+   :param seeds: None, or one integer per environment: the random seed of each one reset in this call.
+
+   :returns:
+
+             - **observations** (np.ndarray): float32 (num_envs, observation_size).
+             - **crashed** (np.ndarray): bool (num_envs,).
+             - **step_count** (int): Physics steps since step mode was entered.
+             - **sim_time** (float): step_count * dt.
+   :rtype: StepResult
+
+   :raises ValueError: A shape, length or ``steps`` out of range, or the step mode is closed --
+       refused before anything is sent.
+   :raises grpc.RpcError: FAILED_PRECONDITION if step mode ended on the simulator,
+       INVALID_ARGUMENT for an action out of range or non-finite, or an environment
+       never reset since step mode was entered, INTERNAL if a flight model failed.
+
+.. py:method:: StepMode.reset(mask=None, seeds=None)
+
+   Send environments back to their start without stepping any: step() with steps=0.
+
+   Every environment must be reset once before it is stepped: its position is measured from that start.
+
+   :param mask: None for all environments, or a (num_envs,) bool mask of those to restart.
+   :param seeds: None, or one integer per environment: the random seed of each one reset.
+
+   :returns: StepResult, as step() returns it.
+
+.. py:method:: StepMode.close()
+
+   Leave step mode: the clock drives the aircraft again. A second call does nothing.
+
+Context manager support: ``__exit__`` calls ``close()``.
 
 Data types
 ----------
@@ -827,6 +971,12 @@ Values returned by the methods above. You do not construct these.
       :type: float
 
    .. py:attribute:: mavlink_port
+      :type: int
+
+   .. py:attribute:: flight_stack
+      :type: str
+
+   .. py:attribute:: link_port
       :type: int
 
    .. py:attribute:: x
@@ -1038,9 +1188,31 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: mappings
       :type: list[ActuatorMapping]
 
+.. py:class:: StepResult
+
+   Every environment after one StepMode.step() or StepMode.reset().
+
+   .. py:attribute:: observations
+      :type: ndarray
+
+   .. py:attribute:: crashed
+      :type: ndarray
+
+   .. py:attribute:: step_count
+      :type: int
+
+   .. py:attribute:: sim_time
+      :type: float
+
 .. py:class:: GatePose
 
-   Position and forward direction of a race gate (UE engine coords, cm).
+   A race gate's opening (UE engine coords, cm).
+
+   The opening is the rectangle in the plane through (x, y, z) normal to
+   forward: a point p is inside when ``|(p - centre) . up| <= half_height`` and
+   ``|(p - centre) . right| <= half_width``, right being perpendicular to
+   forward and up. (x, y, z) is the opening's centre, not the base pivot
+   ``set_track_gates`` takes.
 
    .. py:attribute:: gate_index
       :type: int
@@ -1061,6 +1233,21 @@ Values returned by the methods above. You do not construct these.
       :type: float
 
    .. py:attribute:: forward_z
+      :type: float
+
+   .. py:attribute:: half_width
+      :type: float
+
+   .. py:attribute:: half_height
+      :type: float
+
+   .. py:attribute:: up_x
+      :type: float
+
+   .. py:attribute:: up_y
+      :type: float
+
+   .. py:attribute:: up_z
       :type: float
 
 .. py:class:: RaceTrackInfo
