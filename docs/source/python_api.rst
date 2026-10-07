@@ -40,6 +40,7 @@ Classes
            a = np.zeros((mode.num_envs, mode.action_size), np.float32)
            for _ in range(1000):
                r = mode.step(a, steps=10, reset=r.crashed)
+           mode.reset(mask=r.crashed)  # step mode is not left with an environment crashed
 
 Connection
 ^^^^^^^^^^
@@ -261,7 +262,7 @@ Aircraft management
              - **actual_frequency_hz** (float): Actual physics frequency.
              - **target_frequency_hz** (float): Target physics frequency.
              - **step_count** (int): Number of simulation steps executed.
-             - **crashed** (bool): Whether the aircraft has crashed.
+             - **crashed** (CrashReason): Why the aircraft crashed; CrashReason.NONE, which is falsy, while it has not.
              - **time_scale** (float): Current time scale.
              - **mavlink_port** (int): Deprecated, use link_port. The link port of a PX4 aircraft, 0 for any other.
              - **flight_stack** (str): "PX4", "ArduPilot", "BetaFlight"; "" when no stack drives it.
@@ -716,6 +717,10 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
    :returns: Resulting track info, whose x/y/z is each gate's OPENING centre, not
              the base pivot given here.
 
+   :raises grpc.RpcError: FAILED_PRECONDITION while step mode runs: it holds the
+       collision world the gates stand in, so set the gates before
+       entering it.
+
 .. py:method:: PteroSim.get_track_info()
 
    Get the race track layout: each gate's opening.
@@ -768,24 +773,35 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    Remove current race track and all configured gates from the world.
 
+   :raises grpc.RpcError: FAILED_PRECONDITION while step mode runs: it holds the
+       collision world the gates stand in.
+
 Step mode
 ^^^^^^^^^
 
 For reinforcement learning: every aircraft is one environment, and one call steps them all as fast as the physics runs, never waiting for a frame.
 
-.. py:method:: PteroSim.enter_step_mode()
+.. py:method:: PteroSim.enter_step_mode(groups=None)
 
    Make every aircraft one environment that moves only when StepMode.step() steps it.
 
    The simulation must be started, and no aircraft driven by a flight stack. The set of
    aircraft is fixed until StepMode.close(); hold(), stop() or removing an aircraft ends step mode.
+   hold() and a removal end it even with an environment crashed, which then crashes on the clock.
    Entering again ends the step mode entered before.
+
+   :param groups: Swarms, each a list of two or more instance ids. The aircraft of a group share one
+                  world: those that meet both crash with CrashReason.MID_AIR, they are reset together,
+                  one that crashed falls on with its motors off in its mates' way until then, and a call
+                  steps them at most 50 ms. Any aircraft in no group is a world of its own, as every one
+                  is without groups.
 
    :returns: StepMode, also a context manager whose exit calls close().
 
    :raises grpc.RpcError: FAILED_PRECONDITION naming every aircraft that cannot be an environment
-       and why, e.g. the simulation is not started, a flight stack drives it, or the
-       aircraft do not share one action layout.
+       and why, e.g. the simulation is not started, a flight stack drives it, the aircraft
+       do not share one action layout, or a group names an aircraft that does not step,
+       names one twice, or has fewer than two.
 
 .. py:property:: StepMode.instance_ids
 
@@ -851,7 +867,9 @@ For reinforcement learning: every aircraft is one environment, and one call step
    :returns:
 
              - **observations** (np.ndarray): float32 (num_envs, observation_size).
-             - **crashed** (np.ndarray): bool (num_envs,).
+             - **crashed** (np.ndarray): bool (num_envs,). A crashed environment stands still until reset;
+               ``reset=result.crashed`` resets those.
+             - **crash_reason** (np.ndarray): uint8 (num_envs,), each a CrashReason value; 0 where not crashed.
              - **step_count** (int): Physics steps since step mode was entered.
              - **sim_time** (float): step_count * dt.
    :rtype: StepResult
@@ -877,12 +895,52 @@ For reinforcement learning: every aircraft is one environment, and one call step
 
    Leave step mode: the clock drives the aircraft again. A second call does nothing.
 
+   Refused while an environment is crashed, since on the clock it would crash: reset those
+   first, e.g. ``mode.reset(mask=result.crashed)``. A refused close leaves step mode open; leaving
+   a ``with`` block on an exception, the refusal is added to that exception as a note instead.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION naming each environment still crashed, its aircraft and why.
+
 Context manager support: ``__exit__`` calls ``close()``.
 
 Data types
 ----------
 
 Values returned by the methods above. You do not construct these.
+
+.. py:class:: CrashReason
+
+   Why an aircraft crashed. NONE, the only falsy one, is no crash, so ``if status.crashed:`` asks whether it did.
+
+   .. py:attribute:: NONE
+      :value: 0
+
+      Not crashed.
+
+   .. py:attribute:: HARD_LANDING
+      :value: 1
+
+      Touched down faster than its gear takes.
+
+   .. py:attribute:: HULL_IMPACT
+      :value: 2
+
+      Its body hit something.
+
+   .. py:attribute:: ROTOR_STRIKE
+      :value: 3
+
+      A turning rotor or propeller hit something.
+
+   .. py:attribute:: MID_AIR
+      :value: 4
+
+      It hit another aircraft.
+
+   .. py:attribute:: DIVERGED
+      :value: 5
+
+      Its flight model cannot be trusted; the simulator's log says why.
 
 .. py:class:: SimStatus
 
@@ -965,7 +1023,7 @@ Values returned by the methods above. You do not construct these.
       :type: int
 
    .. py:attribute:: crashed
-      :type: bool
+      :type: CrashReason
 
    .. py:attribute:: time_scale
       :type: float
@@ -1196,6 +1254,9 @@ Values returned by the methods above. You do not construct these.
       :type: ndarray
 
    .. py:attribute:: crashed
+      :type: ndarray
+
+   .. py:attribute:: crash_reason
       :type: ndarray
 
    .. py:attribute:: step_count
