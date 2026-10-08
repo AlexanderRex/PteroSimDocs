@@ -62,6 +62,10 @@ Simulation lifecycle
 
    Start simulation (physics running).
 
+   :raises grpc.RpcError: FAILED_PRECONDITION ("started (Running), not started:
+       <aircraft>: <reason>") when an aircraft could not be started, such as
+       one with no ground under it. The rest run regardless.
+
 .. py:method:: PteroSim.hold()
 
    Pause simulation.
