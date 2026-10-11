@@ -20,6 +20,31 @@ Get an access token
    :class: no-float-left
    :width: 100%
 
+Add planetary assets to your account
+------------------------------------
+
+A token alone is not enough for tiled worlds whose datasets come from the Asset
+Depot. Each planetary tileset must also be added to your ion account. For
+example, PteroSim uses **Cesium Mars** (asset ID ``3644333``) for Mars.
+
+1. In `Cesium ion <https://ion.cesium.com/>`_, open **Asset Depot**.
+2. Search for the planetary dataset you need, such as **Cesium Mars** or
+   **Cesium Moon**, and open it.
+3. Select **Add to my assets**.
+
+.. image:: Images/cesium_mars_asset_depot.png
+   :alt: Cesium Mars in the Asset Depot with the add button highlighted
+   :class: no-float-left
+   :width: 100%
+
+4. Open **My Assets** and confirm that the planetary dataset is listed.
+
+If your token is restricted to selected assets, edit it under **Access Tokens**
+and allow the newly added dataset. An unrestricted ``assets:read`` token needs
+no change.
+Cesium also documents this requirement in its `Moon and Mars tutorial
+<https://cesium.com/learn/unreal/unreal-moon-mars/>`_.
+
 For more information about scopes, asset restrictions, rotation, and usage, see
 Cesium's `Access Tokens guide
 <https://cesium.com/learn/ion/cesium-ion-access-tokens/>`_.
