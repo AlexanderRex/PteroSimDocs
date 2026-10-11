@@ -421,14 +421,13 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
        simulation is not started, no sample has been taken yet, the
        sensor is disabled, or the empty name is ambiguous.
 
-.. py:method:: Aircraft.camera(sensor_name="Camera", *, width=0, height=0, timeout=10)
+.. py:method:: Aircraft.camera(sensor_name="Camera", *, timeout=10)
 
    Capture a camera frame from this aircraft (on-demand, blocks until GPU readback completes).
 
+   The frame is the camera's image_width x image_height; set_sensor_param() sets them before start().
+
    :param sensor_name: Name of the camera sensor component (default "Camera").
-   :param width: Requested width in pixels (0 = component default).
-   :param height: Requested height in pixels (0 = component default).
-                  Both width and height must be set, or both 0.
    :param timeout: gRPC timeout in seconds (default 10.0).
 
    :returns:
@@ -436,10 +435,13 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
              - **image** (numpy.ndarray): BGR array (H, W, 3), dtype=uint8.
              - **width** (int): Frame width in pixels.
              - **height** (int): Frame height in pixels.
-             - **timestamp** (float): The aircraft's simulation time when the capture was requested — the same clock
+             - **timestamp** (float): The simulation time of the state the image shows — the same clock
                as ``imu()``/``gps()`` ``timestamp_simulation_s``, so a frame can be matched to a pose.
              - **sequence_number** (int): Monotonically increasing frame counter.
    :rtype: CameraFrame
+
+   :raises grpc.RpcError: FAILED_PRECONDITION, naming why, when the camera is disabled or its aircraft has
+       crashed; stop() and start() bring a crashed aircraft's camera back.
 
 .. py:method:: Aircraft.list_sensors()
 
@@ -518,7 +520,7 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    ``stream_bitrate_kbps`` among others::
 
        drone.set_sensor_param("camera", update_hz=30, stream=True, stream_bitrate_kbps=8000)
-       sim.start()   # RTP/H.264 now flows to udp://127.0.0.1:5600 (+ instance id)
+       sim.start()   # RTP/H.264 now flows to udp://127.0.0.1:5600 (+ 2 x instance id)
 
    Every streamed frame carries its capture time in an H.264 SEI (UUID ``PteroSimFrame v1``).
 
@@ -534,8 +536,9 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
        FAILED_PRECONDITION if the sim has already started,
        INVALID_ARGUMENT if update_hz <= 0, a field is not one of the
        type's attributes, its value is not one the attribute takes (a
-       whole number for an integer attribute), or the sensor settled on a
-       different value than the one sent (a camera clamps its size and FOV).
+       whole number for an integer attribute), or the sensor cannot run
+       with the values together (a camera's size or FOV out of range, or
+       with stream on its host, port or bitrate).
 
 Actuator control
 ^^^^^^^^^^^^^^^^
@@ -855,18 +858,28 @@ For reinforcement learning: every aircraft is one environment, and one call step
 
    :type: int
 
-.. py:method:: StepMode.step(actions, steps=1, reset=None, seeds=None)
+.. py:method:: StepMode.step(actions, steps=1, reset=None, seeds=None, starts=None)
 
    Hold the actions for ``steps`` physics steps in every environment, then observe them all.
 
-   An environment marked in ``reset`` goes back to its start instead and is not stepped
-   this call; its action is ignored. ``steps=0`` only observes (or only resets).
+   An environment marked in ``reset`` goes back to its spawn's start, or to the start given
+   in ``starts``, instead and is not stepped this call; its action is ignored. ``steps=0``
+   only observes (or only resets).
+
+   Every environment must be reset once without a start before it is stepped or given one:
+   that reset sets its origin, which its position is measured from and its starts are given
+   in. A start does not move the origin.
 
    :param actions: (num_envs, action_size) array-like, each column within its channel's
                    [input_min, input_max].
    :param steps: Physics steps per environment, 0..max_steps_per_call.
    :param reset: None, or (num_envs,) bool mask of the environments to restart.
    :param seeds: None, or one integer per environment: the random seed of each one reset in this call.
+   :param starts: None, or one entry per environment: None for its spawn's start, or 13 numbers
+                  for an environment marked in ``reset``, as an observation reports them (e.g. a
+                  previous observation's ``row[:13]``): north, east, down (m) from its origin;
+                  attitude qw, qx, qy, qz, local NED to body; velocity north, east, down over the
+                  ground (m/s); body rates p, q, r (rad/s).
 
    :returns:
 
@@ -875,23 +888,31 @@ For reinforcement learning: every aircraft is one environment, and one call step
                ``reset=result.crashed`` resets those.
              - **crash_reason** (np.ndarray): uint8 (num_envs,), each a CrashReason value; 0 where not crashed.
              - **step_count** (int): Physics steps since step mode was entered.
-             - **sim_time** (float): step_count * dt.
+             - **env_sim_time** (np.ndarray): float64 (num_envs,), each environment's flight-model time (s)
+               at its observation, the clock its sensors stamp by; its reset starts it over at 0.
    :rtype: StepResult
 
-   :raises ValueError: A shape, length or ``steps`` out of range, or the step mode is closed --
-       refused before anything is sent.
+   :raises ValueError: A shape, length or ``steps`` out of range, a start for an environment
+       not reset, or the step mode is closed -- refused before anything is sent.
    :raises grpc.RpcError: FAILED_PRECONDITION if step mode ended on the simulator,
-       INVALID_ARGUMENT for an action out of range or non-finite, or an environment
-       never reset since step mode was entered, INTERNAL if a flight model failed.
+       INVALID_ARGUMENT for an action out of range or non-finite, an environment
+       never reset since step mode was entered, or a start that is not finite, whose
+       quaternion is not unit within 1e-4, or with no ground under it (a start under
+       the ground included), INTERNAL if a flight model failed. Only the ground under
+       a start's CG is checked: one with a foot, a prop or the hull inside something
+       comes back crashed in this call's result.
 
-.. py:method:: StepMode.reset(mask=None, seeds=None)
+.. py:method:: StepMode.reset(mask=None, seeds=None, starts=None)
 
-   Send environments back to their start without stepping any: step() with steps=0.
+   Send environments back to their spawn's start, or to their own, without stepping: step() with steps=0.
 
-   Every environment must be reset once before it is stepped: its position is measured from that start.
+   Every environment must be reset once without a start before it is stepped or given one: that
+   reset sets its origin, which its position is measured from and its starts are given in.
 
    :param mask: None for all environments, or a (num_envs,) bool mask of those to restart.
    :param seeds: None, or one integer per environment: the random seed of each one reset.
+   :param starts: None, or one entry per environment: None for its spawn's start, or 13 numbers,
+                  as step() takes them.
 
    :returns: StepResult, as step() returns it.
 
@@ -1266,8 +1287,8 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: step_count
       :type: int
 
-   .. py:attribute:: sim_time
-      :type: float
+   .. py:attribute:: env_sim_time
+      :type: ndarray
 
 .. py:class:: GatePose
 
