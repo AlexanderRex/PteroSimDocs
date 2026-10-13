@@ -42,6 +42,15 @@ Classes
                r = mode.step(a, steps=10, reset=r.crashed)
            mode.reset(mask=r.crashed)  # step mode is not left with an environment crashed
 
+.. py:class:: RawStream
+
+   A connection to one render sensor's raw_stream.
+
+   Example::
+
+       with RawStream("127.0.0.1", 5710) as stream:
+           frame = stream.read()
+
 Connection
 ^^^^^^^^^^
 
@@ -539,6 +548,23 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
        whole number for an integer attribute), or the sensor cannot run
        with the values together (a camera's size or FOV out of range, or
        with stream on its host, port or bitrate).
+
+Raw sensor streams
+^^^^^^^^^^^^^^^^^^
+
+A render sensor with ``raw_stream`` on serves lossless frames over TCP on ``raw_stream_host``, port ``raw_stream_port`` + 2 x the aircraft's instance id.
+
+.. py:method:: RawStream.read()
+
+   The next frame the sensor rendered; blocks until it arrives.
+
+   :raises ConnectionError: The simulator closed the stream.
+   :raises TimeoutError: Nothing arrived within the timeout given at connect.
+   :raises ValueError: The bytes are not a PTF1 frame this SDK reads.
+
+.. py:method:: RawStream.close()
+
+   Disconnect; the sensor stops rendering for this stream once no client is left.
 
 Actuator control
 ^^^^^^^^^^^^^^^^
@@ -1235,6 +1261,46 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: sequence_number
       :type: int
+
+.. py:class:: RawFrame
+
+   One lossless frame from a render sensor's raw_stream, as RawStream.read() returns it.
+
+   .. py:attribute:: image
+      :type: ndarray
+
+   .. py:attribute:: width
+      :type: int
+
+   .. py:attribute:: height
+      :type: int
+
+   .. py:attribute:: frame
+      :type: int
+
+   .. py:attribute:: sim_time
+      :type: float
+
+   .. py:attribute:: capture_unix_us
+      :type: int
+
+   .. py:attribute:: fx
+      :type: float
+
+   .. py:attribute:: fy
+      :type: float
+
+   .. py:attribute:: cx
+      :type: float
+
+   .. py:attribute:: cy
+      :type: float
+
+   .. py:attribute:: camera_position_frd
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: camera_rotation_frd
+      :type: tuple[float, float, float, float]
 
 .. py:class:: ActuatorMapping
 
