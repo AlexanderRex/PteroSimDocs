@@ -22,6 +22,11 @@ First Steps
 
 :doc:`first_steps` — Basic spawning workflow for aircraft and payloads.
 
+Cesium ion
+----------
+
+:doc:`cesium_ion` — Connect PteroSim to Cesium ion and open Earth, Mars, and other tiled worlds.
+
 SITL Simulation
 ---------------
 
@@ -45,6 +50,7 @@ Headless & Automation
 
    getting_started
    first_steps
+   cesium_ion
    sitl_simulation_px4
    sitl_simulation_ardupilot
    python_api
