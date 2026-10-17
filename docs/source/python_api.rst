@@ -280,6 +280,14 @@ Aircraft management
              - **mavlink_port** (int): Deprecated, use link_port. The link port of a PX4 aircraft, 0 for any other.
              - **flight_stack** (str): "PX4", "ArduPilot", "BetaFlight"; "" when no stack drives it.
              - **link_port** (int): Port the flight stack connects to; 0 when no stack drives it.
+             - **rpm** (list[float]): Each engine's propeller or rotor RPM, in Propulsion.xml order.
+             - **surfaces** (dict[str, float]): Each surface's position, keyed by the property its flight
+               control system writes it to (the outputs of its actuator, kinematic and aerosurface_scale
+               blocks), in that property's unit: "fcs/flap-pos-deg" in degrees, "fcs/elevator-pos-rad" in
+               radians, "-norm" in the command's range. Positions lag their commands only as the model's
+               servos do.
+
+             rpm and surfaces are empty before start(). Any other property: Aircraft.properties().
    :rtype: List of AircraftStatus
 
    :raises grpc.RpcError: FAILED_PRECONDITION if the world lacks a GeoReferencingSystem.
@@ -603,6 +611,30 @@ Actuator control
    :param yaw_rate_rad_sec: Desired yaw rate in radians per second.
    :param throttle: Base thrust in range [0, 1].
    :param enabled: Enable or disable the attitude controller.
+
+Flight model
+^^^^^^^^^^^^
+
+.. py:method:: Aircraft.properties(paths)
+
+   Read this aircraft's JSBSim properties by path, all in one call. Requires the simulation started.
+
+   Any property of the flight model can be read: motor speed ("propulsion/engine[0]/propeller-rpm"),
+   a surface as its control system moves it ("fcs/flap-pos-deg", or a vehicle's own such as
+   "fcs/elevon-left-pos-rad"), and so on. The names are in the vehicle's XML files.
+
+   Values are as the last physics step left them. The call is served once a frame, so a running
+   flight is sampled, not followed step by step; in step mode it reads what the last step() left.
+   A property a <function> computes is computed again by the read, so one built on <random>
+   draws from the model's generator and changes what a seeded episode does.
+
+   :param paths: Property paths; at least one.
+
+   :returns: Each path's value, keyed by the path.
+
+   :raises ValueError: No path given.
+   :raises grpc.RpcError: NOT_FOUND for an unknown aircraft, or naming a path that is malformed, missing
+       from the model or a folder of properties such as "fcs"; FAILED_PRECONDITION before start().
 
 Gimbal
 ^^^^^^
@@ -1123,6 +1155,12 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: roll
       :type: float
       :value: 0.0
+
+   .. py:attribute:: rpm
+      :type: list[float]
+
+   .. py:attribute:: surfaces
+      :type: dict[str, float]
 
 .. py:class:: IMUReading
 
