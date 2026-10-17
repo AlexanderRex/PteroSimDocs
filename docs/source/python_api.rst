@@ -214,6 +214,44 @@ One wind for the whole world: the clouds, rain and trees move with it and every 
        INVALID_ARGUMENT for a value out of range or one the model does not read,
        FAILED_PRECONDITION for the other of Milspec and Tustin mid-run.
 
+Geographic origin
+^^^^^^^^^^^^^^^^^
+
+The WGS84 point the scene's (0, 0, 0) stands on. It moves while the simulation is Idle.
+
+.. py:method:: PteroSim.set_geo_origin(*, lat, lon, alt)
+
+   Move the level's geographic origin, the WGS84 point the scene's (0, 0, 0) stands on.
+
+   Apply Origin in the Scene panel, the same move, for a simulation that is
+   Idle (not started, or stopped). The scene stays where it is in Unreal
+   coordinates and is now at the new place on the Earth: an aircraft spawned by
+   lat/lon/alt afterwards is placed around it and its flight model flies there.
+   On a map with 3D tiles the origin goes onto their terrain at the point, as
+   high above it as the level started, and alt is not used; the call waits
+   until that terrain is measured::
+
+       sim.set_geo_origin(lat=0.0, lon=0.0, alt=0.0)
+
+   :param lat: Latitude in degrees, -90 to 90.
+   :param lon: Longitude in degrees, -180 to 180.
+   :param alt: Altitude in meters (WGS84) of the scene's Z = 0, off 3D tiles.
+
+   :raises grpc.RpcError: INVALID_ARGUMENT for a value out of range or non-finite,
+       FAILED_PRECONDITION when the simulator refuses the move (it moves
+       only while the simulation is Idle); its log says why.
+
+.. py:method:: PteroSim.get_geo_origin()
+
+   Get the level's geographic origin.
+
+   :returns:
+
+             - **lat** (float): Latitude in degrees.
+             - **lon** (float): Longitude in degrees.
+             - **alt** (float): Altitude in meters (WGS84) of the scene's Z = 0.
+   :rtype: GeoOrigin
+
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
 
@@ -227,7 +265,7 @@ Aircraft management
              - **description** (str): Human-readable description.
    :rtype: List of AircraftClass
 
-.. py:method:: PteroSim.spawn(aircraft_class, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0)
+.. py:method:: PteroSim.spawn(aircraft_class, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, in_air=False, airspeed_mps=0.0)
 
    Spawn an aircraft.
 
@@ -235,6 +273,7 @@ Aircraft management
    coordinates. Returns an Aircraft handle; all per-aircraft operations
    (controls, sensors, navigation, racing) are methods on the handle.
    On a map with 3D tiles, the call waits until the ground under the point has loaded.
+   The aircraft stands on the ground under the point, or with in_air starts with its CG at the point.
 
    :param aircraft_class: Aircraft type name (e.g. "F450", "DeltaQuad").
    :param lat: Latitude in degrees.
@@ -246,11 +285,15 @@ Aircraft management
    :param yaw: Yaw rotation in degrees (default 0.0).
    :param pitch: Pitch rotation in degrees (default 0.0).
    :param roll: Roll rotation in degrees (default 0.0).
+   :param in_air: Start in the air at the point instead of on the ground under it (default False).
+   :param airspeed_mps: With in_air, calibrated airspeed along the nose at the start, in the scene's
+                        wind; 0 starts it still over the ground (default 0.0).
 
    :returns: Handle to the spawned aircraft.
 
    :raises grpc.RpcError: FAILED_PRECONDITION ("Could not spawn <aircraft>: <reason>")
-       when the spawn is refused, e.g. the ground under the point did not load.
+       when the spawn is refused, e.g. the ground under the point did not load;
+       INVALID_ARGUMENT for an airspeed without in_air, or one that is not a finite 0 or more.
 
 .. py:method:: PteroSim.get_aircraft(instance_id)
 
@@ -1071,6 +1114,19 @@ Values returned by the methods above. You do not construct these.
       :type: float
 
    .. py:attribute:: from_deg
+      :type: float
+
+.. py:class:: GeoOrigin
+
+   The level's geographic origin, from get_geo_origin().
+
+   .. py:attribute:: lat
+      :type: float
+
+   .. py:attribute:: lon
+      :type: float
+
+   .. py:attribute:: alt
       :type: float
 
 .. py:class:: AircraftClass
