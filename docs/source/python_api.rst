@@ -330,8 +330,11 @@ Aircraft management
                blocks), in that property's unit: "fcs/flap-pos-deg" in degrees, "fcs/elevator-pos-rad" in
                radians, "-norm" in the command's range. Positions lag their commands only as the model's
                servos do.
+             - **battery** (BatteryStatus | None): Its pack's charge, terminal volts, current, used mAh, cells in
+               series and warning charge; low from the first whole percent under the warning, as the HUD's LOW
+               BATTERY. None with no Battery.xml.
 
-             rpm and surfaces are empty before start(). Any other property: Aircraft.properties().
+             rpm and surfaces are empty, and battery is None, before start(). Any other property: Aircraft.properties().
    :rtype: List of AircraftStatus
 
    :raises grpc.RpcError: FAILED_PRECONDITION if the world lacks a GeoReferencingSystem.
@@ -373,7 +376,7 @@ Aircraft management
    not written to its files, so a respawn comes back on the stack its Controls.xml names.
 
    :param stack: "PX4", "ArduPilot" or "BetaFlight"; "Manual" to fly it by hand, which its Controls.xml
-                 must allow with pilot="stabilize" or pilot="direct"; "" leaves the aircraft driven by nobody.
+                 must allow with pilot="multicopter" or pilot="direct"; "" leaves the aircraft driven by nobody.
 
    :returns: The stack now fitted.
 
@@ -1141,6 +1144,31 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: description
       :type: str
 
+.. py:class:: BatteryStatus
+
+   A vehicle's pack, as its Battery.xml describes it and its run steps it; AircraftStatus.battery.
+
+   .. py:attribute:: charge_percent
+      :type: float
+
+   .. py:attribute:: volts
+      :type: float
+
+   .. py:attribute:: amps
+      :type: float
+
+   .. py:attribute:: used_mah
+      :type: float
+
+   .. py:attribute:: series
+      :type: int
+
+   .. py:attribute:: warn_percent
+      :type: float
+
+   .. py:attribute:: low
+      :type: bool
+
 .. py:class:: AircraftStatus
 
    Status of a spawned aircraft.
@@ -1219,6 +1247,10 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: surfaces
       :type: dict[str, float]
+
+   .. py:attribute:: battery
+      :type: BatteryStatus | None
+      :value: None
 
 .. py:class:: IMUReading
 
