@@ -39,12 +39,6 @@ Spawn attitude
 A vehicle is level when its manifest has no ``spawn`` element. Use its
 ``pitch`` attribute for a vehicle that must spawn at another attitude.
 
-Check a vehicle
----------------
-
-Check the pose, contact points, propellers, and control surfaces while stopped.
-Then test manual flight before connecting an autopilot.
-
 Components
 ----------
 
