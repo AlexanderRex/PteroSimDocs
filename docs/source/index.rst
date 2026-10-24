@@ -22,6 +22,11 @@ First Steps
 
 :doc:`first_steps` — Basic spawning workflow for aircraft and payloads.
 
+Build Your Own Vehicle
+----------------------
+
+:doc:`editor/index`
+
 SITL Simulation
 ---------------
 
@@ -51,6 +56,7 @@ Headless & Automation
 
    getting_started
    first_steps
+   editor/index
    sitl_simulation_px4
    sitl_simulation_ardupilot
    custom_aircraft
