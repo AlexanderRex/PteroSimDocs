@@ -28,6 +28,10 @@ Classes
 
    Handle to a spawned aircraft, from PteroSim.spawn() or PteroSim.get_aircraft().
 
+.. py:class:: Prop
+
+   Handle to a prop, from PteroSim.spawn_prop().
+
 .. py:class:: StepMode
 
    Every aircraft as one environment, from PteroSim.enter_step_mode().
@@ -271,7 +275,7 @@ Aircraft management
    Spawn an aircraft.
 
    Use lat/lon/alt for geographic coordinates or x/y/z for Unreal Engine
-   coordinates. Returns an Aircraft handle; all per-aircraft operations
+   coordinates, one set in full and none of the other. Returns an Aircraft handle; all per-aircraft operations
    (controls, sensors, navigation, racing) are methods on the handle.
    On a map with 3D tiles, the call waits until the ground under the point has loaded.
    The aircraft stands on the ground under the point, or with in_air starts with its CG at the point.
@@ -292,6 +296,7 @@ Aircraft management
 
    :returns: Handle to the spawned aircraft.
 
+   :raises ValueError: a position that is not one full set, lat/lon/alt or x/y/z, alone.
    :raises grpc.RpcError: FAILED_PRECONDITION ("Could not spawn <aircraft>: <reason>")
        when the spawn is refused, e.g. the ground under the point did not load;
        INVALID_ARGUMENT for an airspeed without in_air, or one that is not a finite 0 or more.
@@ -367,6 +372,37 @@ Aircraft management
 
    Destroy this aircraft. Returns remaining aircraft count.
 
+.. py:method:: Aircraft.set_pose(*, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, in_air=False, airspeed_mps=0.0, timeout=None)
+
+   Put this aircraft at a new pose, where Start finds it. Only while the simulation is stopped.
+
+   As spawn() places it: on the ground under the point, or with in_air with its CG at the
+   point. Use lat/lon/alt or x/y/z, one set in full and none of the other. On a map with 3D
+   tiles, the call waits until the ground under the point has loaded.
+
+   :param lat: Latitude in degrees.
+   :param lon: Longitude in degrees.
+   :param alt: Altitude in meters.
+   :param x: X coordinate in UE units.
+   :param y: Y coordinate in UE units.
+   :param z: Z coordinate in UE units.
+   :param yaw: Yaw rotation in degrees (default 0.0).
+   :param pitch: Pitch rotation in degrees (default 0.0).
+   :param roll: Roll rotation in degrees (default 0.0).
+   :param in_air: Start in the air at the point instead of on the ground under it (default False).
+   :param airspeed_mps: With in_air, calibrated airspeed along the nose at the start (default 0.0).
+   :param timeout: Seconds to wait for the answer; None waits as long as the ground under the
+                   point takes to load (default None). A pose out of time is still made once the
+                   ground has loaded, if the simulation is stopped then.
+
+   :returns: Where it stands, (x, y, z) in UE units.
+
+   :raises ValueError: a timeout not over 0, or a position that is not one full set alone.
+   :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused, or ("Could
+       not set the pose: <reason>") when the ground under the point did not load; NOT_FOUND
+       when the aircraft is gone; INVALID_ARGUMENT for an airspeed without in_air, or one
+       that is not a finite 0 or more; DEADLINE_EXCEEDED when the timeout runs out.
+
 .. py:method:: Aircraft.set_flight_stack(stack)
 
    Choose which autopilot flies this aircraft, the same choice the outliner offers.
@@ -379,6 +415,92 @@ Aircraft management
                  must allow with pilot="multicopter" or pilot="direct"; "" leaves the aircraft driven by nobody.
 
    :returns: The stack now fitted.
+
+Props
+^^^^^
+
+A prop is a .glb from the simulator's machine placed in the scene. Props are spawned and removed while the simulation is stopped.
+
+.. py:method:: PteroSim.spawn_prop(mesh_path, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, mode="falls", mass_kg=None, scale=None, timeout=None)
+
+   Spawn a prop: a .glb on the simulator's machine, stood on the ground under the point.
+
+   Only while the simulation is stopped. Use lat/lon/alt for geographic coordinates or
+   x/y/z for Unreal Engine coordinates, one set in full and none of the other. On a map with 3D tiles, the call waits until the
+   ground under the point has loaded.
+
+   :param mesh_path: Absolute path of the .glb on the simulator's machine.
+   :param lat: Latitude in degrees.
+   :param lon: Longitude in degrees.
+   :param alt: Altitude in meters.
+   :param x: X coordinate in UE units.
+   :param y: Y coordinate in UE units.
+   :param z: Z coordinate in UE units.
+   :param yaw: Yaw rotation in degrees (default 0.0).
+   :param pitch: Pitch rotation in degrees (default 0.0).
+   :param roll: Roll rotation in degrees (default 0.0).
+   :param mode: "falls" (collision and physics: in a run it falls, and a gripper may grab it),
+                "stands" (collision only: it stays where it was put, ground for aircraft and for
+                props that fall) or "shown" (neither: only shown) (default "falls").
+   :param mass_kg: Mass of a prop that falls; None takes its hull's volume at its material's
+                   density. Refused for the other modes.
+   :param scale: Its size against the .glb's, alike on every axis, about its lowest point, so it
+                 still stands on the ground; None keeps the .glb's own. A mass from its volume
+                 follows the scale; a given mass_kg stays.
+   :param timeout: Seconds to wait for the answer; None waits as long as the ground under the
+                   point takes to load (default None). A spawn out of time still lands once the ground
+                   has loaded, and no id comes back to remove it by.
+
+   :returns: Handle to the spawned prop.
+
+   :raises ValueError: an unknown mode, a timeout not over 0, or a position that is not one
+       full set, lat/lon/alt or x/y/z, alone.
+   :raises grpc.RpcError: INVALID_ARGUMENT for no file at mesh_path, a mass or a scale that is not
+       finite and over 0, or a mass for a prop that does not fall; FAILED_PRECONDITION while
+       the simulation runs or is paused, or ("Could not spawn <path>: <reason>") when the
+       file is no .glb, the ground under the point did not load, or the scale leaves a mass
+       from its volume under the gram Chaos holds; DEADLINE_EXCEEDED when the
+       timeout runs out.
+
+.. py:property:: Prop.prop_id
+
+   The prop's id in the simulation: from 1, never reused while the world lives.
+
+   :type: int
+
+.. py:method:: Prop.set_pose(*, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, timeout=None)
+
+   Put this prop at a new pose, stood on the ground under the point. Only while the simulation is stopped.
+
+   Use lat/lon/alt or x/y/z, one set in full and none of the other. On a map with 3D tiles,
+   the call waits until the ground under the point has loaded.
+
+   :param lat: Latitude in degrees.
+   :param lon: Longitude in degrees.
+   :param alt: Altitude in meters.
+   :param x: X coordinate in UE units.
+   :param y: Y coordinate in UE units.
+   :param z: Z coordinate in UE units.
+   :param yaw: Yaw rotation in degrees (default 0.0).
+   :param pitch: Pitch rotation in degrees (default 0.0).
+   :param roll: Roll rotation in degrees (default 0.0).
+   :param timeout: Seconds to wait for the answer; None waits as long as the ground under the
+                   point takes to load (default None). A pose out of time is still made once the
+                   ground has loaded, if the simulation is stopped then.
+
+   :returns: Where it stands, (x, y, z) in UE units.
+
+   :raises ValueError: a timeout not over 0, or a position that is not one full set alone.
+   :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused, or ("Could
+       not set the pose: <reason>") when the ground under the point did not load; NOT_FOUND
+       when the prop is gone; DEADLINE_EXCEEDED when the timeout runs out.
+
+.. py:method:: Prop.remove()
+
+   Remove this prop from the scene. Only while the simulation is stopped.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused;
+       NOT_FOUND when the prop is already gone.
 
 Sensors
 ^^^^^^^
