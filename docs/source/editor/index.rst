@@ -1,8 +1,10 @@
 Build Your Own Vehicle
 ======================
 
-A PteroSim vehicle is a directory under ``PteroSimAircrafts``. The directory
-and its JSBSim manifest must have the same name: ``<Name>/<Name>.xml``.
+In a release build, each vehicle is stored under
+``PteroSim/PteroSimAircrafts/<Name>`` relative to the release directory. The
+vehicle directory and its JSBSim manifest must have the same name, so the full
+relative path is ``PteroSim/PteroSimAircrafts/<Name>/<Name>.xml``.
 
 Open the vehicle editor
 -----------------------
@@ -26,6 +28,10 @@ Locations use metres, with Y right and Z up. X points aft in the **Metrics**,
 **Buoyancy** sections, but forward in ``Visual.xml`` and ``Sensors.xml``.
 Orientations in those files are roll, pitch, and yaw in degrees. A component
 attached to a gimbal or nacelle uses its parent's frame.
+
+See `Frames of Reference in the JSBSim manual
+<https://jsbsim-team.github.io/jsbsim-reference-manual/user/concepts/frames-of-reference/>`_
+for the JSBSim coordinate systems.
 
 Components
 ----------
