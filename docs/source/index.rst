@@ -27,6 +27,11 @@ Build Your Own Vehicle
 
 :doc:`editor/index`
 
+Cesium ion
+----------
+
+:doc:`cesium_ion` — Connect PteroSim to Cesium ion and open Earth, Mars, and other tiled worlds.
+
 SITL Simulation
 ---------------
 
@@ -51,6 +56,7 @@ Headless & Automation
    getting_started
    first_steps
    editor/index
+   cesium_ion
    sitl_simulation_px4
    sitl_simulation_ardupilot
    python_api

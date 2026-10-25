@@ -28,6 +28,33 @@ Classes
 
    Handle to a spawned aircraft, from PteroSim.spawn() or PteroSim.get_aircraft().
 
+.. py:class:: Prop
+
+   Handle to a prop, from PteroSim.spawn_prop().
+
+.. py:class:: StepMode
+
+   Every aircraft as one environment, from PteroSim.enter_step_mode().
+
+   The aircraft move only when step() steps them, not with the clock. Leave with close(),
+   or use it as a context manager::
+
+       with sim.enter_step_mode() as mode:
+           r = mode.reset(seeds=range(mode.num_envs))
+           a = np.zeros((mode.num_envs, mode.action_size), np.float32)
+           for _ in range(1000):
+               r = mode.step(a, steps=10, reset=r.crashed)
+           mode.reset(mask=r.crashed)  # step mode is not left with an environment crashed
+
+.. py:class:: RawStream
+
+   A connection to one render sensor's raw_stream.
+
+   Example::
+
+       with RawStream("127.0.0.1", 5710) as stream:
+           frame = stream.read()
+
 Connection
 ^^^^^^^^^^
 
@@ -48,6 +75,11 @@ Simulation lifecycle
 
    Start simulation (physics running).
 
+   :raises grpc.RpcError: FAILED_PRECONDITION. "started (Running), not started:
+       <aircraft>: <reason>" when some aircraft could not be started, such as
+       one with no ground under it; the rest run. "not started: <reason>" when
+       none could, or when the simulation is not Idle; it stays as it was.
+
 .. py:method:: PteroSim.hold()
 
    Pause simulation.
@@ -63,6 +95,11 @@ Simulation lifecycle
 .. py:method:: PteroSim.stop()
 
    Stop simulation.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION ("stopped (Idle), not reloaded:
+       <aircraft>: <reason>") when an aircraft could not be reloaded.
+       The simulation is stopped regardless, and start() leaves that
+       aircraft unstarted until a later stop() reloads it or it is respawned.
 
 Simulation status
 ^^^^^^^^^^^^^^^^^
@@ -85,8 +122,9 @@ Simulation status
 
    :returns:
 
-             - **simulation_time** (float): Current simulation time in seconds.
-             - **step_number** (int): Current simulation step number.
+             - **simulation_time** (float): Physics time in seconds of the aircraft furthest
+               along in this run. 0 while stopped, and from 0 again on every start().
+             - **step_number** (int): That aircraft's physics steps in this run.
              - **target_frequency_hz** (float): Target physics frequency.
              - **actual_frequency_hz** (float): Actual achieved frequency.
              - **clock_state** (str): "holding", "running", or "step_once".
@@ -104,7 +142,7 @@ Simulation settings
 
 .. py:method:: PteroSim.set_physics_frequency(hz)
 
-   Sets physics update rate in Hz.
+   Sets physics update rate in Hz. Only while the simulation is stopped.
 
    :param hz: Frequency in Hz.
 
@@ -118,28 +156,131 @@ Simulation settings
 
    Returns current MAVLink bind address.
 
+Wind and turbulence
+^^^^^^^^^^^^^^^^^^^
+
+One wind for the whole world: the clouds, rain and trees move with it and every aircraft's flight model flies in it. Setting it needs an Edu or Pro license.
+
+.. py:method:: PteroSim.set_wind(*, speed_ms, from_deg)
+
+   Set the steady wind for the whole world. Needs an Edu or Pro license.
+
+   The clouds, rain and trees move with it and every aircraft's flight model
+   flies in it. Keyword-only, so a direction cannot land in the speed::
+
+       sim.set_wind(speed_ms=5.0, from_deg=270.0)
+
+   :param speed_ms: Wind speed in m/s, from 0 to 113.2 (the highest surface
+                    gust on record, WMO).
+   :param from_deg: Direction the wind blows FROM, degrees from true north
+                    (90 = from the east); any finite value, read modulo 360.
+
+   :raises grpc.RpcError: PERMISSION_DENIED without an Edu or Pro license,
+       INVALID_ARGUMENT for a speed out of that range or non-finite, or
+       a non-finite direction.
+
+.. py:method:: PteroSim.get_wind()
+
+   Get the steady wind.
+
+   :returns:
+
+             - **speed_ms** (float): Wind speed in m/s.
+             - **from_deg** (float): Direction the wind blows FROM, degrees from true
+               north, in [0, 360).
+   :rtype: WindState
+
+.. py:method:: PteroSim.set_turbulence(model, *, gain=0.0, rate_hz=0.0, severity=0)
+
+   Set the turbulence every aircraft flies in. Needs an Edu or Pro license.
+
+   Each model takes only the inputs JSBSim reads for it; leave the others at 0.
+
+   - ``"none"``: no turbulence.
+   - ``"culp"``: ``gain`` in (0, 1] and ``rate_hz`` in (0, 30].
+   - ``"milspec"``, ``"tustin"``: Dryden spectrum per MIL-F-8785C; ``severity``
+     1..7 (3 light, 4 moderate, 6 severe). The steady wind is their 20 ft wind:
+     below 1000 ft above sea level (JSBSim reads altitude ASL, not AGL) their
+     intensity is a tenth of it, above 2000 ft ASL it comes from the severity
+     curve alone.
+
+   Milspec and Tustin share JSBSim's turbulence filter state, which only a stop
+   clears: from start to stop a run keeps the first of the two it flies (the one
+   set before start counts). Switching to the other while running or paused is
+   refused; "none", "culp" and a new severity for the same form are not.
+
+   :param model: "none", "culp", "milspec" or "tustin".
+   :param gain: Culp gain.
+   :param rate_hz: Culp rate in Hz.
+   :param severity: Milspec/Tustin probability-of-exceedance curve.
+
+   :raises ValueError: If model is not one of the four names.
+   :raises grpc.RpcError: PERMISSION_DENIED without an Edu or Pro license,
+       INVALID_ARGUMENT for a value out of range or one the model does not read,
+       FAILED_PRECONDITION for the other of Milspec and Tustin mid-run.
+
+Geographic origin
+^^^^^^^^^^^^^^^^^
+
+The WGS84 point the scene's (0, 0, 0) stands on. It moves while the simulation is Idle.
+
+.. py:method:: PteroSim.set_geo_origin(*, lat, lon, alt)
+
+   Move the level's geographic origin, the WGS84 point the scene's (0, 0, 0) stands on.
+
+   Apply Origin in the Scene panel, the same move, for a simulation that is
+   Idle (not started, or stopped). The scene stays where it is in Unreal
+   coordinates and is now at the new place on the Earth: an aircraft spawned by
+   lat/lon/alt afterwards is placed around it and its flight model flies there.
+   On a map with 3D tiles the origin goes onto their terrain at the point, as
+   high above it as the level started, and alt is not used; the call waits
+   until that terrain is measured::
+
+       sim.set_geo_origin(lat=0.0, lon=0.0, alt=0.0)
+
+   :param lat: Latitude in degrees, -90 to 90.
+   :param lon: Longitude in degrees, -180 to 180.
+   :param alt: Altitude in meters (WGS84) of the scene's Z = 0, off 3D tiles.
+
+   :raises grpc.RpcError: INVALID_ARGUMENT for a value out of range or non-finite,
+       FAILED_PRECONDITION when the simulator refuses the move (it moves
+       only while the simulation is Idle); its log says why.
+
+.. py:method:: PteroSim.get_geo_origin()
+
+   Get the level's geographic origin.
+
+   :returns:
+
+             - **lat** (float): Latitude in degrees.
+             - **lon** (float): Longitude in degrees.
+             - **alt** (float): Altitude in meters (WGS84) of the scene's Z = 0.
+   :rtype: GeoOrigin
+
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
 
 .. py:method:: PteroSim.list_aircraft_classes()
 
-   Returns available aircraft types.
+   Returns the vehicles on disk that spawn() can open.
 
    :returns:
 
-             - **name** (str): Aircraft class name (e.g. "F450", "DeltaQuad").
-             - **description** (str): Human-readable description.
+             - **name** (str): The vehicle's folder name, which spawn() takes (e.g. "x500", "orca").
+             - **description** (str): Empty; nothing on disk describes a vehicle yet.
    :rtype: List of AircraftClass
 
-.. py:method:: PteroSim.spawn(aircraft_class, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0)
+.. py:method:: PteroSim.spawn(aircraft_class, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, in_air=False, airspeed_mps=0.0)
 
    Spawn an aircraft.
 
    Use lat/lon/alt for geographic coordinates or x/y/z for Unreal Engine
-   coordinates. Returns an Aircraft handle; all per-aircraft operations
+   coordinates, one set in full and none of the other. Returns an Aircraft handle; all per-aircraft operations
    (controls, sensors, navigation, racing) are methods on the handle.
+   On a map with 3D tiles, the call waits until the ground under the point has loaded.
+   The aircraft stands on the ground under the point, or with in_air starts with its CG at the point.
 
-   :param aircraft_class: Aircraft type name (e.g. "F450", "DeltaQuad").
+   :param aircraft_class: Aircraft type name (e.g. "F450", "x500").
    :param lat: Latitude in degrees.
    :param lon: Longitude in degrees.
    :param alt: Altitude in meters.
@@ -149,8 +290,16 @@ Aircraft management
    :param yaw: Yaw rotation in degrees (default 0.0).
    :param pitch: Pitch rotation in degrees (default 0.0).
    :param roll: Roll rotation in degrees (default 0.0).
+   :param in_air: Start in the air at the point instead of on the ground under it (default False).
+   :param airspeed_mps: With in_air, calibrated airspeed along the nose at the start, in the scene's
+                        wind; 0 starts it still over the ground (default 0.0).
 
    :returns: Handle to the spawned aircraft.
+
+   :raises ValueError: a position that is not one full set, lat/lon/alt or x/y/z, alone.
+   :raises grpc.RpcError: FAILED_PRECONDITION ("Could not spawn <aircraft>: <reason>")
+       when the spawn is refused, e.g. the ground under the point did not load;
+       INVALID_ARGUMENT for an airspeed without in_air, or one that is not a finite 0 or more.
 
 .. py:method:: PteroSim.get_aircraft(instance_id)
 
@@ -175,9 +324,22 @@ Aircraft management
              - **actual_frequency_hz** (float): Actual physics frequency.
              - **target_frequency_hz** (float): Target physics frequency.
              - **step_count** (int): Number of simulation steps executed.
-             - **crashed** (bool): Whether the aircraft has crashed.
+             - **crashed** (CrashReason): Why the aircraft crashed; CrashReason.NONE, which is falsy, while it has not.
              - **time_scale** (float): Current time scale.
-             - **mavlink_port** (int): MAVLink TCP port.
+             - **mavlink_port** (int): Deprecated, use link_port. The link port of a PX4 aircraft, 0 for any other.
+             - **flight_stack** (str): "PX4", "ArduPilot", "BetaFlight", "Manual"; "" when no stack drives it.
+             - **link_port** (int): Port the flight stack connects to; 0 when no stack drives it or under Manual.
+             - **rpm** (list[float]): Each engine's propeller or rotor RPM, in Propulsion.xml order.
+             - **surfaces** (dict[str, float]): Each surface's position, keyed by the property its flight
+               control system writes it to (the outputs of its actuator, kinematic and aerosurface_scale
+               blocks), in that property's unit: "fcs/flap-pos-deg" in degrees, "fcs/elevator-pos-rad" in
+               radians, "-norm" in the command's range. Positions lag their commands only as the model's
+               servos do.
+             - **battery** (BatteryStatus | None): Its pack's charge, terminal volts, current, used mAh, cells in
+               series and warning charge; low from the first whole percent under the warning, as the HUD's LOW
+               BATTERY. None with no Battery.xml.
+
+             rpm and surfaces are empty, and battery is None, before start(). Any other property: Aircraft.properties().
    :rtype: List of AircraftStatus
 
    :raises grpc.RpcError: FAILED_PRECONDITION if the world lacks a GeoReferencingSystem.
@@ -188,15 +350,58 @@ Aircraft management
 
    :type: int
 
+.. py:property:: Aircraft.flight_stack
+
+   Flight stack that drives this aircraft ("PX4", "ArduPilot", "BetaFlight", or "Manual" when it is flown by hand); "" when none does.
+
+   :type: str
+
+.. py:property:: Aircraft.link_port
+
+   Port this aircraft's flight stack connects to, as the simulator binds it; 0 when no stack drives it or it is flown under Manual.
+
+   :type: int
+
 .. py:property:: Aircraft.mavlink_port
 
-   MAVLink TCP port (4560 + instance_id).
+   Deprecated, use link_port. The link port of a PX4 aircraft; 0 for any other stack.
 
    :type: int
 
 .. py:method:: Aircraft.remove()
 
    Destroy this aircraft. Returns remaining aircraft count.
+
+.. py:method:: Aircraft.set_pose(*, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, in_air=False, airspeed_mps=0.0, timeout=None)
+
+   Put this aircraft at a new pose, where Start finds it. Only while the simulation is stopped.
+
+   As spawn() places it: on the ground under the point, or with in_air with its CG at the
+   point. Use lat/lon/alt or x/y/z, one set in full and none of the other. On a map with 3D
+   tiles, the call waits until the ground under the point has loaded.
+
+   :param lat: Latitude in degrees.
+   :param lon: Longitude in degrees.
+   :param alt: Altitude in meters.
+   :param x: X coordinate in UE units.
+   :param y: Y coordinate in UE units.
+   :param z: Z coordinate in UE units.
+   :param yaw: Yaw rotation in degrees (default 0.0).
+   :param pitch: Pitch rotation in degrees (default 0.0).
+   :param roll: Roll rotation in degrees (default 0.0).
+   :param in_air: Start in the air at the point instead of on the ground under it (default False).
+   :param airspeed_mps: With in_air, calibrated airspeed along the nose at the start (default 0.0).
+   :param timeout: Seconds to wait for the answer; None waits as long as the ground under the
+                   point takes to load (default None). A pose out of time is still made once the
+                   ground has loaded, if the simulation is stopped then.
+
+   :returns: Where it stands, (x, y, z) in UE units.
+
+   :raises ValueError: a timeout not over 0, or a position that is not one full set alone.
+   :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused, or ("Could
+       not set the pose: <reason>") when the ground under the point did not load; NOT_FOUND
+       when the aircraft is gone; INVALID_ARGUMENT for an airspeed without in_air, or one
+       that is not a finite 0 or more; DEADLINE_EXCEEDED when the timeout runs out.
 
 .. py:method:: Aircraft.set_flight_stack(stack)
 
@@ -206,9 +411,96 @@ Aircraft management
    Refused while the simulation runs -- stop it first. The choice belongs to this aircraft and is
    not written to its files, so a respawn comes back on the stack its Controls.xml names.
 
-   :param stack: "PX4", "ArduPilot" or "BetaFlight"; "" leaves the aircraft driven by nobody.
+   :param stack: "PX4", "ArduPilot" or "BetaFlight"; "Manual" to fly it by hand, which its Controls.xml
+                 must allow with pilot="multicopter" or pilot="direct"; "" leaves the aircraft driven by nobody.
 
    :returns: The stack now fitted.
+
+Props
+^^^^^
+
+A prop is a .glb from the simulator's machine placed in the scene. Props are spawned and removed while the simulation is stopped.
+
+.. py:method:: PteroSim.spawn_prop(mesh_path, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, mode="falls", mass_kg=None, scale=None, timeout=None)
+
+   Spawn a prop: a .glb on the simulator's machine, stood on the ground under the point.
+
+   Only while the simulation is stopped. Use lat/lon/alt for geographic coordinates or
+   x/y/z for Unreal Engine coordinates, one set in full and none of the other. On a map with 3D tiles, the call waits until the
+   ground under the point has loaded.
+
+   :param mesh_path: Absolute path of the .glb on the simulator's machine.
+   :param lat: Latitude in degrees.
+   :param lon: Longitude in degrees.
+   :param alt: Altitude in meters.
+   :param x: X coordinate in UE units.
+   :param y: Y coordinate in UE units.
+   :param z: Z coordinate in UE units.
+   :param yaw: Yaw rotation in degrees (default 0.0).
+   :param pitch: Pitch rotation in degrees (default 0.0).
+   :param roll: Roll rotation in degrees (default 0.0).
+   :param mode: "falls" (collision and physics: in a run it falls, and a gripper may grab it),
+                "stands" (collision only: it stays where it was put, ground for aircraft and for
+                props that fall) or "shown" (neither: only shown) (default "falls").
+   :param mass_kg: Mass of a prop that falls; None takes its hull's volume at its material's
+                   density. Refused for the other modes.
+   :param scale: Its size against the .glb's, alike on every axis, about its lowest point, so it
+                 still stands on the ground; None keeps the .glb's own. A mass from its volume
+                 follows the scale; a given mass_kg stays.
+   :param timeout: Seconds to wait for the answer; None waits as long as the ground under the
+                   point takes to load (default None). A spawn out of time still lands once the ground
+                   has loaded, and no id comes back to remove it by.
+
+   :returns: Handle to the spawned prop.
+
+   :raises ValueError: an unknown mode, a timeout not over 0, or a position that is not one
+       full set, lat/lon/alt or x/y/z, alone.
+   :raises grpc.RpcError: INVALID_ARGUMENT for no file at mesh_path, a mass or a scale that is not
+       finite and over 0, or a mass for a prop that does not fall; FAILED_PRECONDITION while
+       the simulation runs or is paused, or ("Could not spawn <path>: <reason>") when the
+       file is no .glb, the ground under the point did not load, or the scale leaves a mass
+       from its volume under the gram Chaos holds; DEADLINE_EXCEEDED when the
+       timeout runs out.
+
+.. py:property:: Prop.prop_id
+
+   The prop's id in the simulation: from 1, never reused while the world lives.
+
+   :type: int
+
+.. py:method:: Prop.set_pose(*, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, timeout=None)
+
+   Put this prop at a new pose, stood on the ground under the point. Only while the simulation is stopped.
+
+   Use lat/lon/alt or x/y/z, one set in full and none of the other. On a map with 3D tiles,
+   the call waits until the ground under the point has loaded.
+
+   :param lat: Latitude in degrees.
+   :param lon: Longitude in degrees.
+   :param alt: Altitude in meters.
+   :param x: X coordinate in UE units.
+   :param y: Y coordinate in UE units.
+   :param z: Z coordinate in UE units.
+   :param yaw: Yaw rotation in degrees (default 0.0).
+   :param pitch: Pitch rotation in degrees (default 0.0).
+   :param roll: Roll rotation in degrees (default 0.0).
+   :param timeout: Seconds to wait for the answer; None waits as long as the ground under the
+                   point takes to load (default None). A pose out of time is still made once the
+                   ground has loaded, if the simulation is stopped then.
+
+   :returns: Where it stands, (x, y, z) in UE units.
+
+   :raises ValueError: a timeout not over 0, or a position that is not one full set alone.
+   :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused, or ("Could
+       not set the pose: <reason>") when the ground under the point did not load; NOT_FOUND
+       when the prop is gone; DEADLINE_EXCEEDED when the timeout runs out.
+
+.. py:method:: Prop.remove()
+
+   Remove this prop from the scene. Only while the simulation is stopped.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused;
+       NOT_FOUND when the prop is already gone.
 
 Sensors
 ^^^^^^^
@@ -316,14 +608,13 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
        simulation is not started, no sample has been taken yet, the
        sensor is disabled, or the empty name is ambiguous.
 
-.. py:method:: Aircraft.camera(sensor_name="Camera", *, width=0, height=0, timeout=10)
+.. py:method:: Aircraft.camera(sensor_name="Camera", *, timeout=10)
 
    Capture a camera frame from this aircraft (on-demand, blocks until GPU readback completes).
 
+   The frame is the camera's image_width x image_height; set_sensor_param() sets them before start().
+
    :param sensor_name: Name of the camera sensor component (default "Camera").
-   :param width: Requested width in pixels (0 = component default).
-   :param height: Requested height in pixels (0 = component default).
-                  Both width and height must be set, or both 0.
    :param timeout: gRPC timeout in seconds (default 10.0).
 
    :returns:
@@ -331,9 +622,13 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
              - **image** (numpy.ndarray): BGR array (H, W, 3), dtype=uint8.
              - **width** (int): Frame width in pixels.
              - **height** (int): Frame height in pixels.
-             - **timestamp** (float): SimClock time when frame was captured.
+             - **timestamp** (float): The simulation time of the state the image shows — the same clock
+               as ``imu()``/``gps()`` ``timestamp_simulation_s``, so a frame can be matched to a pose.
              - **sequence_number** (int): Monotonically increasing frame counter.
    :rtype: CameraFrame
+
+   :raises grpc.RpcError: FAILED_PRECONDITION, naming why, when the camera is disabled or its aircraft has
+       crashed; stop() and start() bring a crashed aircraft's camera back.
 
 .. py:method:: Aircraft.list_sensors()
 
@@ -341,7 +636,8 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    Read-only — allowed at any time, before or after start().
 
-   :returns: List of SensorInfo (name, type, enabled, update_hz, position, orientation).
+   :returns: List of SensorInfo (name, type, enabled, update_hz, position, orientation,
+             fields -- the type's own attributes as text, keyed as set_sensor_param() takes them).
 
 .. py:method:: Aircraft.add_sensor(sensor_type, name="")
 
@@ -352,17 +648,15 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    :param name: Desired name; empty uses the class default. A name already taken
                 on the aircraft is auto-suffixed (IMU -> IMU1).
 
-   For a vehicle with a folder of its own, the sensor is also written into its
-   Sensors.xml, so it is still there after a restart. If that file cannot be
-   written the sensor is taken back off and the call fails, rather than leaving
-   the aircraft and its file disagreeing. A built-in aircraft has nowhere to
-   write, so there the sensor lasts for the session, as it always has.
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change.
 
    :returns: The final unique name assigned to the new sensor.
 
    :raises grpc.RpcError: FAILED_PRECONDITION if the sim has already started,
-       INVALID_ARGUMENT for an unknown sensor_type, INTERNAL if the
-       vehicle's file could not be written.
+       INVALID_ARGUMENT for an unknown sensor_type.
 
 .. py:method:: Aircraft.remove_sensor(name)
 
@@ -370,47 +664,85 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    :param name: Sensor name (see list_sensors()).
 
-   Taken out of the vehicle's Sensors.xml too, where it has one -- and the file
-   is written first, so one that cannot be written leaves the sensor in place
-   instead of the two disagreeing.
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change.
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started,
-       INTERNAL if the vehicle's file could not be written.
+       FAILED_PRECONDITION if the sim has already started.
 
 .. py:method:: Aircraft.set_sensor_pose(name, position, orientation=(0.0, 0.0, 0.0))
 
    Set a sensor's mount pose. Only before start() (config window).
 
-   Written to the vehicle's Sensors.xml as well, where it has one, so the
-   pose is still there after a restart. A built-in aircraft has nowhere to
-   write, so there it lasts for the session.
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change. One exception: the build panel saves every listed sensor's pose
+   from the component, so a pose set here on a sensor the file names is written
+   with the next edit made in the panel.
 
    :param name: Sensor name.
    :param position: (x, y, z) in meters, aircraft origin frame.
    :param orientation: (roll, pitch, yaw) in degrees (default no rotation).
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started,
-       INTERNAL if the vehicle's file could not be written.
+       FAILED_PRECONDITION if the sim has already started.
 
-.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None)
+.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None, **fields)
 
    Update sensor parameters. Only the given (non-None) fields are applied.
 
-   Only before start() (config window). Written to the vehicle's Sensors.xml
-   as well, where it has one, so the change is still there after a restart.
+   Only before start() (config window).
+   Session-only, like every sensor change made through the API: the vehicle's
+   Sensors.xml is authored in the build panel or by hand and never written here,
+   so the next spawn of the vehicle starts from the file again. Stop/Start keeps
+   the change.
+
+   Any further keyword is one of the sensor type's own attributes, named as
+   Sensors.xml names them -- the keys list_sensors() reports in ``fields``.
+   A camera, for example, takes ``field_of_view``, ``image_width``,
+   ``image_height``, ``stream``, ``stream_port``, ``stream_host`` and
+   ``stream_bitrate_kbps`` among others::
+
+       drone.set_sensor_param("camera", update_hz=30, stream=True, stream_bitrate_kbps=8000)
+       sim.start()   # RTP/H.264 now flows to udp://127.0.0.1:5600 (+ 2 x instance id)
+
+   Every streamed frame carries its capture time in an H.264 SEI (UUID ``PteroSimFrame v1``).
 
    :param name: Sensor name.
    :param enabled: Enable/disable the sensor.
    :param update_hz: Update rate in Hz (must be > 0).
    :param noise: Enable/disable sensor noise.
    :param logging: Enable/disable per-sensor logging.
+   :param \*\*fields: The type's own attributes; bools, numbers and strings. None
+                      skips the field, like the explicit keywords.
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
        FAILED_PRECONDITION if the sim has already started,
-       INVALID_ARGUMENT if update_hz <= 0,
-       INTERNAL if the vehicle's file could not be written.
+       INVALID_ARGUMENT if update_hz is not a finite rate above 0, a field is not one of the
+       type's attributes, its value is not one the attribute takes (a
+       whole number for an integer attribute), or the sensor cannot run
+       with the values together (a camera's size or FOV out of range, or
+       with stream on its host, port or bitrate).
+
+Raw sensor streams
+^^^^^^^^^^^^^^^^^^
+
+A render sensor with ``raw_stream`` on serves lossless frames over TCP on ``raw_stream_host``, port ``raw_stream_port`` + 2 x the aircraft's instance id.
+
+.. py:method:: RawStream.read()
+
+   The next frame the sensor rendered; blocks until it arrives.
+
+   :raises ConnectionError: The simulator closed the stream.
+   :raises TimeoutError: Nothing arrived within the timeout given at connect.
+   :raises ValueError: The bytes are not a PTF1 frame this SDK reads.
+
+.. py:method:: RawStream.close()
+
+   Disconnect; the sensor stops rendering for this stream once no client is left.
 
 Actuator control
 ^^^^^^^^^^^^^^^^
@@ -449,6 +781,123 @@ Actuator control
    :param yaw_rate_rad_sec: Desired yaw rate in radians per second.
    :param throttle: Base thrust in range [0, 1].
    :param enabled: Enable or disable the attitude controller.
+
+Flight model
+^^^^^^^^^^^^
+
+.. py:method:: Aircraft.properties(paths)
+
+   Read this aircraft's JSBSim properties by path, all in one call. Requires the simulation started.
+
+   Any property of the flight model can be read: motor speed ("propulsion/engine[0]/propeller-rpm"),
+   a surface as its control system moves it ("fcs/flap-pos-deg", or a vehicle's own such as
+   "fcs/elevon-left-pos-rad"), and so on. The names are in the vehicle's XML files.
+
+   Values are as the last physics step left them. The call is served once a frame, so a running
+   flight is sampled, not followed step by step; in step mode it reads what the last step() left.
+   A property a <function> computes is computed again by the read, so one built on <random>
+   draws from the model's generator and changes what a seeded episode does.
+
+   :param paths: Property paths; at least one.
+
+   :returns: Each path's value, keyed by the path.
+
+   :raises ValueError: No path given.
+   :raises grpc.RpcError: NOT_FOUND for an unknown aircraft, or naming a path that is malformed, missing
+       from the model or a folder of properties such as "fcs"; FAILED_PRECONDITION before start().
+
+Gimbal
+^^^^^^
+
+A camera mount has one aimer: the autopilot's Gimbal channels, or this API. ``set_gimbal_source()`` says which, and ``set_gimbal()`` is refused while the channels hold the mount rather than being overwritten by the next control frame.
+
+.. py:method:: Aircraft.list_gimbals()
+
+   List the camera mounts this aircraft carries.
+
+   Read-only and allowed at any time: before start() every mount reads as at zero,
+   which is where it is.
+
+   :returns: List of GimbalInfo, sorted by name, so the order is the same on every run.
+             An aircraft carrying no mounts gives an empty list. ``source`` says which
+             aimer holds each mount -- check it before you aim, the way ``fields`` tells
+             you what set_sensor_param() will take.
+
+.. py:method:: Aircraft.gimbal(gimbal_name="")
+
+   Where one mount points now, and where it was last sent.
+
+   The head is not at the angle by the time set_gimbal() returns -- it slews there
+   at the rate and lag the vehicle's ``<gimbal>`` line gives the servos, so poll
+   ``settled`` rather than assuming it arrived::
+
+       drone.set_gimbal(pitch_deg=-30)
+       while not drone.gimbal().settled:
+           time.sleep(0.05)
+
+   :param gimbal_name: Mount name; empty means the aircraft's only mount.
+
+   :returns: GimbalInfo. ``current_deg`` is where the head is, ``target_deg`` where it is
+             going; they differ whenever the mount has a lag or a slew cap.
+
+   :raises grpc.RpcError: NOT_FOUND if no mount has that name or the aircraft carries
+       none, FAILED_PRECONDITION if the name is empty and it carries several.
+
+.. py:method:: Aircraft.set_gimbal(gimbal_name="", *, roll_deg=None, pitch_deg=None, yaw_deg=None)
+
+   Aim a camera mount, in degrees from where it is fitted.
+
+   An axis left as None stays where it was last sent, so a loop can pan without
+   restating the tilt. The three are joint angles -- the post yaws, the fork on it
+   rolls, the camera in the fork pitches -- not an euler rotation of the head, and
+   the signs are the vehicle's frame (X forward, Y right, Z up), not the FRD the
+   sensor readings use.
+
+   Only a mount whose ``source`` is ``"api"`` takes this. While the autopilot's
+   Gimbal channels hold the mount the call is refused rather than overwritten a
+   millisecond later by the next control frame, so hand it over first::
+
+       drone.set_gimbal_source("api")
+       drone.set_gimbal(pitch_deg=-30, yaw_deg=90)
+
+   Needs the simulation running: the head is moved by the runner's steps, so an aim
+   taken before start() is refused rather than silently going nowhere.
+
+   Session-only, like every change made through this API: the vehicle's files are
+   never written. stop() returns every mount to its fitted pose, so a script that
+   stops must aim again.
+
+   :param gimbal_name: Mount name; empty means the aircraft's only mount.
+   :param roll_deg: Roll from the fitted pose in degrees; None leaves the axis.
+   :param pitch_deg: Pitch from the fitted pose in degrees; None leaves the axis.
+   :param yaw_deg: Yaw from the fitted pose in degrees; None leaves the axis.
+
+   :raises ValueError: If no axis is given.
+   :raises grpc.RpcError: NOT_FOUND if no mount has that name or the aircraft carries
+       none, FAILED_PRECONDITION if the simulation is not running, if the name is
+       empty and the aircraft carries several mounts, or if the autopilot's
+       channels hold the mount, INVALID_ARGUMENT if an angle is not finite.
+
+.. py:method:: Aircraft.set_gimbal_source(source, gimbal_name="")
+
+   Say who aims a mount: ``"api"`` (this API) or ``"mavlink"`` (the autopilot).
+
+   Both aimers write the same target vector, so a mount has exactly one of them.
+   ``"mavlink"`` is every mount's default and means the Gimbal channels in the
+   vehicle's Controls.xml -- a mount that binds none simply never hears from them.
+   ``"api"`` makes the control frames pass the mount by whatever the file binds,
+   and is what set_gimbal() requires.
+
+   Session-only: the vehicle's <gimbal> line keeps whatever the panel authored, and
+   a respawn starts from that again. Allowed before start(), so a script can take a
+   mount before the first control frame arrives; unlike the aim, it survives stop().
+
+   :param source: ``"api"`` or ``"mavlink"``.
+   :param gimbal_name: Mount name; empty means the aircraft's only mount.
+
+   :raises ValueError: If source is neither ``"api"`` nor ``"mavlink"``.
+   :raises grpc.RpcError: NOT_FOUND if no mount has that name or the aircraft carries
+       none, FAILED_PRECONDITION if the name is empty and it carries several.
 
 Navigation
 ^^^^^^^^^^
@@ -489,26 +938,35 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    Create or update a race track with the given gate definitions.
 
-   If no ARaceTrack exists in the world, one is spawned automatically.
-   After setting gates, all existing aircraft are registered with the track.
+   If no ARaceTrack exists in the world, one is spawned automatically at the
+   world origin. After setting gates, all existing aircraft are registered
+   with the track and every aircraft's race starts over.
 
    Each gate is a dict with position keys (x, y, z) and optional rotation
-   keys (yaw, pitch, roll, default 0).
+   keys (yaw, pitch, roll, default 0). The position is the gate's BASE
+   pivot (the bottom centre it stands on, UE cm, relative to the track);
+   the gate rotates about it.
 
    :param gates: List of gate definition dicts.
 
-   :returns: Resulting track info with actual gate center positions.
+   :returns: Resulting track info, whose x/y/z is each gate's OPENING centre, not
+             the base pivot given here.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION while step mode runs: it holds the
+       collision world the gates stand in, so set the gates before
+       entering it.
 
 .. py:method:: PteroSim.get_track_info()
 
-   Get the race track layout (gate positions and forward vectors).
+   Get the race track layout: each gate's opening.
 
    :returns:
 
              - **gate_count** (int): Number of gates on the track.
              - **gates** (list[GatePose]): List of gate poses.
 
-             Each GatePose has gate_index, x/y/z (UE cm), forward_x/y/z.
+             Each GatePose has gate_index, x/y/z (the opening's centre, UE cm),
+             forward_x/y/z, up_x/y/z, and half_width/half_height (cm).
    :rtype: RaceTrackInfo
 
 .. py:method:: Aircraft.race_state()
@@ -550,10 +1008,192 @@ Methods for drone racing: track configuration, gate queries, and per-aircraft ra
 
    Remove current race track and all configured gates from the world.
 
+   :raises grpc.RpcError: FAILED_PRECONDITION while step mode runs: it holds the
+       collision world the gates stand in.
+
+Step mode
+^^^^^^^^^
+
+For reinforcement learning: every aircraft is one environment, and one call steps them all as fast as the physics runs, never waiting for a frame.
+
+.. py:method:: PteroSim.enter_step_mode(groups=None)
+
+   Make every aircraft one environment that moves only when StepMode.step() steps it.
+
+   The simulation must be started, and no aircraft driven by a flight stack. The set of
+   aircraft is fixed until StepMode.close(); hold(), stop() or removing an aircraft ends step mode.
+   hold() and a removal end it even with an environment crashed, which then crashes on the clock.
+   Entering again ends the step mode entered before.
+
+   :param groups: Swarms, each a list of two or more instance ids. The aircraft of a group share one
+                  world: those that meet both crash with CrashReason.MID_AIR, they are reset together,
+                  one that crashed falls on with its motors off in its mates' way until then, and a call
+                  steps them at most 50 ms. Any aircraft in no group is a world of its own, as every one
+                  is without groups.
+
+   :returns: StepMode, also a context manager whose exit calls close().
+
+   :raises grpc.RpcError: FAILED_PRECONDITION naming every aircraft that cannot be an environment
+       and why, e.g. the simulation is not started, a flight stack drives it, the aircraft
+       do not share one action layout, or a group names an aircraft that does not step,
+       names one twice, or has fewer than two.
+
+.. py:property:: StepMode.instance_ids
+
+   The aircraft, one per environment, in row order.
+
+   :type: tuple[int, ...]
+
+.. py:property:: StepMode.action_channels
+
+   One per action column, the same for every environment; each takes [input_min, input_max].
+
+   :type: tuple[ActuatorMapping, ...]
+
+.. py:property:: StepMode.observation_fields
+
+   Names of the observation columns, in order, as the simulator reports them.
+
+   :type: tuple[str, ...]
+
+.. py:property:: StepMode.num_envs
+
+   Number of environments: rows of the actions and the observations.
+
+   :type: int
+
+.. py:property:: StepMode.action_size
+
+   Action columns per environment.
+
+   :type: int
+
+.. py:property:: StepMode.observation_size
+
+   Observation columns per environment.
+
+   :type: int
+
+.. py:property:: StepMode.dt
+
+   Seconds per physics step.
+
+   :type: float
+
+.. py:property:: StepMode.max_steps_per_call
+
+   Most physics steps one step() call takes.
+
+   :type: int
+
+.. py:method:: StepMode.step(actions, steps=1, reset=None, seeds=None, starts=None)
+
+   Hold the actions for ``steps`` physics steps in every environment, then observe them all.
+
+   An environment marked in ``reset`` goes back to its spawn's start, or to the start given
+   in ``starts``, instead and is not stepped this call; its action is ignored. ``steps=0``
+   only observes (or only resets).
+
+   Every environment must be reset once without a start before it is stepped or given one:
+   that reset sets its origin, which its position is measured from and its starts are given
+   in. A start does not move the origin.
+
+   :param actions: (num_envs, action_size) array-like, each column within its channel's
+                   [input_min, input_max].
+   :param steps: Physics steps per environment, 0..max_steps_per_call.
+   :param reset: None, or (num_envs,) bool mask of the environments to restart.
+   :param seeds: None, or one integer per environment: the random seed of each one reset in this call.
+   :param starts: None, or one entry per environment: None for its spawn's start, or 13 numbers
+                  for an environment marked in ``reset``, as an observation reports them (e.g. a
+                  previous observation's ``row[:13]``): north, east, down (m) from its origin;
+                  attitude qw, qx, qy, qz, local NED to body; velocity north, east, down over the
+                  ground (m/s); body rates p, q, r (rad/s).
+
+   :returns:
+
+             - **observations** (np.ndarray): float32 (num_envs, observation_size).
+             - **crashed** (np.ndarray): bool (num_envs,). A crashed environment stands still until reset;
+               ``reset=result.crashed`` resets those.
+             - **crash_reason** (np.ndarray): uint8 (num_envs,), each a CrashReason value; 0 where not crashed.
+             - **step_count** (int): Physics steps since step mode was entered.
+             - **env_sim_time** (np.ndarray): float64 (num_envs,), each environment's flight-model time (s)
+               at its observation, the clock its sensors stamp by; its reset starts it over at 0.
+   :rtype: StepResult
+
+   :raises ValueError: A shape, length or ``steps`` out of range, a start for an environment
+       not reset, or the step mode is closed -- refused before anything is sent.
+   :raises grpc.RpcError: FAILED_PRECONDITION if step mode ended on the simulator,
+       INVALID_ARGUMENT for an action out of range or non-finite, an environment
+       never reset since step mode was entered, or a start that is not finite, whose
+       quaternion is not unit within 1e-4, or with no ground under it (a start under
+       the ground included), INTERNAL if a flight model failed. Only the ground under
+       a start's CG is checked: one with a foot, a prop or the hull inside something
+       comes back crashed in this call's result.
+
+.. py:method:: StepMode.reset(mask=None, seeds=None, starts=None)
+
+   Send environments back to their spawn's start, or to their own, without stepping: step() with steps=0.
+
+   Every environment must be reset once without a start before it is stepped or given one: that
+   reset sets its origin, which its position is measured from and its starts are given in.
+
+   :param mask: None for all environments, or a (num_envs,) bool mask of those to restart.
+   :param seeds: None, or one integer per environment: the random seed of each one reset.
+   :param starts: None, or one entry per environment: None for its spawn's start, or 13 numbers,
+                  as step() takes them.
+
+   :returns: StepResult, as step() returns it.
+
+.. py:method:: StepMode.close()
+
+   Leave step mode: the clock drives the aircraft again. A second call does nothing.
+
+   Refused while an environment is crashed, since on the clock it would crash: reset those
+   first, e.g. ``mode.reset(mask=result.crashed)``. A refused close leaves step mode open; leaving
+   a ``with`` block on an exception, the refusal is added to that exception as a note instead.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION naming each environment still crashed, its aircraft and why.
+
+Context manager support: ``__exit__`` calls ``close()``.
+
 Data types
 ----------
 
 Values returned by the methods above. You do not construct these.
+
+.. py:class:: CrashReason
+
+   Why an aircraft crashed. NONE, the only falsy one, is no crash, so ``if status.crashed:`` asks whether it did.
+
+   .. py:attribute:: NONE
+      :value: 0
+
+      Not crashed.
+
+   .. py:attribute:: HARD_LANDING
+      :value: 1
+
+      Touched down faster than its gear takes.
+
+   .. py:attribute:: HULL_IMPACT
+      :value: 2
+
+      Its body hit something.
+
+   .. py:attribute:: ROTOR_STRIKE
+      :value: 3
+
+      A turning rotor or propeller hit something.
+
+   .. py:attribute:: MID_AIR
+      :value: 4
+
+      It hit another aircraft.
+
+   .. py:attribute:: DIVERGED
+      :value: 5
+
+      Its flight model cannot be trusted; the simulator's log says why.
 
 .. py:class:: SimStatus
 
@@ -593,6 +1233,29 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: time_scale
       :type: float
 
+.. py:class:: WindState
+
+   The steady wind, from get_wind().
+
+   .. py:attribute:: speed_ms
+      :type: float
+
+   .. py:attribute:: from_deg
+      :type: float
+
+.. py:class:: GeoOrigin
+
+   The level's geographic origin, from get_geo_origin().
+
+   .. py:attribute:: lat
+      :type: float
+
+   .. py:attribute:: lon
+      :type: float
+
+   .. py:attribute:: alt
+      :type: float
+
 .. py:class:: AircraftClass
 
    Aircraft type from list_aircraft_classes().
@@ -602,6 +1265,31 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: description
       :type: str
+
+.. py:class:: BatteryStatus
+
+   A vehicle's pack, as its Battery.xml describes it and its run steps it; AircraftStatus.battery.
+
+   .. py:attribute:: charge_percent
+      :type: float
+
+   .. py:attribute:: volts
+      :type: float
+
+   .. py:attribute:: amps
+      :type: float
+
+   .. py:attribute:: used_mah
+      :type: float
+
+   .. py:attribute:: series
+      :type: int
+
+   .. py:attribute:: warn_percent
+      :type: float
+
+   .. py:attribute:: low
+      :type: bool
 
 .. py:class:: AircraftStatus
 
@@ -626,12 +1314,18 @@ Values returned by the methods above. You do not construct these.
       :type: int
 
    .. py:attribute:: crashed
-      :type: bool
+      :type: CrashReason
 
    .. py:attribute:: time_scale
       :type: float
 
    .. py:attribute:: mavlink_port
+      :type: int
+
+   .. py:attribute:: flight_stack
+      :type: str
+
+   .. py:attribute:: link_port
       :type: int
 
    .. py:attribute:: x
@@ -669,6 +1363,16 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: roll
       :type: float
       :value: 0.0
+
+   .. py:attribute:: rpm
+      :type: list[float]
+
+   .. py:attribute:: surfaces
+      :type: dict[str, float]
+
+   .. py:attribute:: battery
+      :type: BatteryStatus | None
+      :value: None
 
 .. py:class:: IMUReading
 
@@ -786,6 +1490,9 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: orientation
       :type: tuple[float, float, float]
 
+   .. py:attribute:: fields
+      :type: dict[str, str]
+
 .. py:class:: CameraFrame
 
    Raw BGR camera frame from PteroSim.
@@ -804,6 +1511,46 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: sequence_number
       :type: int
+
+.. py:class:: RawFrame
+
+   One lossless frame from a render sensor's raw_stream, as RawStream.read() returns it.
+
+   .. py:attribute:: image
+      :type: ndarray
+
+   .. py:attribute:: width
+      :type: int
+
+   .. py:attribute:: height
+      :type: int
+
+   .. py:attribute:: frame
+      :type: int
+
+   .. py:attribute:: sim_time
+      :type: float
+
+   .. py:attribute:: capture_unix_us
+      :type: int
+
+   .. py:attribute:: fx
+      :type: float
+
+   .. py:attribute:: fy
+      :type: float
+
+   .. py:attribute:: cx
+      :type: float
+
+   .. py:attribute:: cy
+      :type: float
+
+   .. py:attribute:: camera_position_frd
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: camera_rotation_frd
+      :type: tuple[float, float, float, float]
 
 .. py:class:: ActuatorMapping
 
@@ -840,9 +1587,34 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: mappings
       :type: list[ActuatorMapping]
 
+.. py:class:: StepResult
+
+   Every environment after one StepMode.step() or StepMode.reset().
+
+   .. py:attribute:: observations
+      :type: ndarray
+
+   .. py:attribute:: crashed
+      :type: ndarray
+
+   .. py:attribute:: crash_reason
+      :type: ndarray
+
+   .. py:attribute:: step_count
+      :type: int
+
+   .. py:attribute:: env_sim_time
+      :type: ndarray
+
 .. py:class:: GatePose
 
-   Position and forward direction of a race gate (UE engine coords, cm).
+   A race gate's opening (UE engine coords, cm).
+
+   The opening is the rectangle in the plane through (x, y, z) normal to
+   forward: a point p is inside when ``|(p - centre) . up| <= half_height`` and
+   ``|(p - centre) . right| <= half_width``, right being perpendicular to
+   forward and up. (x, y, z) is the opening's centre, not the base pivot
+   ``set_track_gates`` takes.
 
    .. py:attribute:: gate_index
       :type: int
@@ -863,6 +1635,21 @@ Values returned by the methods above. You do not construct these.
       :type: float
 
    .. py:attribute:: forward_z
+      :type: float
+
+   .. py:attribute:: half_width
+      :type: float
+
+   .. py:attribute:: half_height
+      :type: float
+
+   .. py:attribute:: up_x
+      :type: float
+
+   .. py:attribute:: up_y
+      :type: float
+
+   .. py:attribute:: up_z
       :type: float
 
 .. py:class:: RaceTrackInfo
@@ -893,3 +1680,35 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: last_gate_passed_time
       :type: float
+
+.. py:class:: GimbalInfo
+
+   A camera mount, from list_gimbals() and gimbal().
+
+   The angle triples are (roll, pitch, yaw) in degrees from where the mount is fitted.
+   They are three joint angles -- the post yaws, the fork on it rolls, the camera in the
+   fork pitches -- not an euler rotation of the head.
+
+   .. py:attribute:: name
+      :type: str
+
+   .. py:attribute:: parent
+      :type: str
+
+   .. py:attribute:: source
+      :type: str
+
+   .. py:attribute:: current_deg
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: target_deg
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: max_rates_deg_s
+      :type: tuple[float, float, float]
+
+   .. py:attribute:: tau_seconds
+      :type: float
+
+   .. py:attribute:: settled
+      :type: bool
