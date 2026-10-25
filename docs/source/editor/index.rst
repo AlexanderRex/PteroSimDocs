@@ -23,11 +23,13 @@ validation fails, PteroSim reports the problem and does not reload the model.
 Coordinate systems
 ------------------
 
-Locations use metres, with Y right and Z up. X points aft in the **Metrics**,
-**Mass Balance**, **Gear**, **Propulsion**, **Tanks**, **External Forces**, and
-**Buoyancy** sections, but forward in ``Visual.xml`` and ``Sensors.xml``.
-Orientations in those files are roll, pitch, and yaw in degrees. A component
-attached to a gimbal or nacelle uses its parent's frame.
+The **Metrics**, **Mass Balance**, **Gear**, **Propulsion**, **Tanks**,
+**External Forces**, and **Buoyancy** sections use the JSBSim structural frame:
+metres, with X aft, Y right, and Z up.
+
+``Visual.xml`` and ``Sensors.xml`` use a separate vehicle frame: metres, with X
+forward, Y right, and Z up. Orientations in these files are roll, pitch, and yaw
+in degrees. A component attached to a gimbal or nacelle uses its parent's frame.
 
 See `Frames of Reference in the JSBSim manual
 <https://jsbsim-team.github.io/jsbsim-reference-manual/user/concepts/frames-of-reference/>`_
