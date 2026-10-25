@@ -10,8 +10,10 @@ Open the vehicle editor
 With the simulation stopped, select a vehicle in **Scene**. Its components
 appear in the aircraft tree. Select a component to open its editor section.
 
-Apply changes
--------------
+.. image:: ../Images/vehicle_editor.png
+   :alt: Vehicle component tree and Apply to FDM button
+   :class: no-float-left
+   :width: 100%
 
 **Apply to FDM** writes the changes and reloads the flight-dynamics model. If
 validation fails, PteroSim reports the problem and does not reload the model.
