@@ -85,7 +85,3 @@ points use the JSBSim structural frame: X points aft, Y right, and Z up.
    enabled for the vehicle, PteroSim displays the structural frame, reference
    points, wing span and chord, and configured tail arms. This setting does not
    change the flight model.
-
-For the underlying JSBSim fields and derived tail metrics, see the
-`FGAircraft reference
-<https://jsbsim-team.github.io/jsbsim/classJSBSim_1_1FGAircraft.html>`_.
