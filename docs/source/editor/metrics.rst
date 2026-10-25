@@ -135,14 +135,3 @@ Reference-point positions in the illustrations are schematic and model-dependent
       :alt: Model-defined visual reference point
       :class: no-float-left
       :width: 100%
-
-**Draw this part**
-   Enables the Metrics debug visualization. When **Show debug draw** is also
-   enabled for the vehicle, PteroSim displays the structural frame, reference
-   points, wing span and chord, and configured tail arms. This setting does not
-   change the flight model.
-
-   .. image:: ../Images/metrics_draw_this_part.png
-      :alt: Schematic Metrics debug drawing with both display options enabled
-      :class: no-float-left
-      :width: 100%
