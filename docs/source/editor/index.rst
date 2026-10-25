@@ -4,17 +4,11 @@ Build Your Own Vehicle
 A PteroSim vehicle is a directory under ``PteroSimAircrafts``. The directory
 and its JSBSim manifest must have the same name: ``<Name>/<Name>.xml``.
 
-Create a vehicle
-----------------
+Open the vehicle editor
+-----------------------
 
-With the simulation stopped, open **Scene**, select **+ Add**, then select
-**New vehicle**. PteroSim creates a vehicle with the minimum required sections
-and opens it in the vehicle editor. You can also copy an existing vehicle
-directory. Rename the directory, manifest, and ``fdm_config`` name.
-
-Select a vehicle in the scene and open it to see its components. Selecting a
-component opens the matching editor section. Changes are available only while
-the simulation is stopped.
+With the simulation stopped, select a vehicle in **Scene**. Its components
+appear in the aircraft tree. Select a component to open its editor section.
 
 Apply changes
 -------------
@@ -25,19 +19,11 @@ validation fails, PteroSim reports the problem and does not reload the model.
 Coordinate systems
 ------------------
 
-JSBSim structural locations use metres with X positive aft, Y positive right,
-and Z positive up. The **Metrics**, **Mass Balance**, **Gear**, **Propulsion**,
-**Tanks**, **External Forces**, and **Buoyancy** sections use this frame.
-
-``Visual.xml`` and ``Sensors.xml`` use a vehicle frame with X forward, Y right,
-and Z up. Orientations are roll, pitch, and yaw in degrees. A part attached to
-a gimbal or nacelle uses its parent's frame instead of the airframe.
-
-Spawn attitude
---------------
-
-A vehicle is level when its manifest has no ``spawn`` element. Use its
-``pitch`` attribute for a vehicle that must spawn at another attitude.
+Locations use metres, with Y right and Z up. X points aft in the **Metrics**,
+**Mass Balance**, **Gear**, **Propulsion**, **Tanks**, **External Forces**, and
+**Buoyancy** sections, but forward in ``Visual.xml`` and ``Sensors.xml``.
+Orientations in those files are roll, pitch, and yaw in degrees. A component
+attached to a gimbal or nacelle uses its parent's frame.
 
 Components
 ----------
