@@ -33,12 +33,6 @@ SITL Simulation
 :doc:`sitl_simulation_px4` — PX4 SITL workflow with QGroundControl.
 :doc:`sitl_simulation_ardupilot` — ArduPilot SITL workflow with Mission Planner.
 
-Your Own Aircraft
------------------
-
-:doc:`custom_aircraft` — Adding an aircraft of your own, in JSBSim FDM XML.
-For worked examples of every stock aircraft, see `PteroSimAircrafts on GitHub <https://github.com/PteroLabsAI/PteroSimAircrafts>`_.
-
 Python API
 ----------
 
@@ -59,6 +53,5 @@ Headless & Automation
    editor/index
    sitl_simulation_px4
    sitl_simulation_ardupilot
-   custom_aircraft
    python_api
    headless
