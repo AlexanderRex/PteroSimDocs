@@ -45,6 +45,11 @@ Contact
    wheel is 0.17272 m ahead of the structural origin, on the centreline, and
    0.4953 m below it.
 
+   .. image:: ../Images/gear_location_orientation.svg
+      :alt: Nose wheel Location measured from the structural origin, its strut axis, and the sense of positive pitch
+      :class: no-float-left
+      :width: 70%
+
 Ground interaction
 ------------------
 
@@ -89,10 +94,11 @@ The following fields appear only when **Type** is **Bogey**.
    of **Location**, and they are not an Unreal Engine rotation. JSBSim
    measures the wheel's compression along the strut, and yaw turns the
    direction the wheel rolls. All zeros, as in the example, keep the strut
-   along the Z axis with the wheel rolling along X. Positive pitch swings the bottom
-   of the strut aft, and 90 points it straight aft, which a tailsitter
-   standing on its tail needs. Positive roll swings it to the right. Positive
-   yaw turns the rolling direction to the left.
+   along the Z axis with the wheel rolling along X. Positive pitch swings the
+   bottom of the strut aft (see the figure under **Location**), and 90 points
+   it straight aft, which a tailsitter standing on its tail needs. Positive
+   roll swings it to the right. Positive yaw turns the rolling direction to
+   the left.
 
 **Rolling friction**
    The friction coefficient along the rolling direction while the brakes are
@@ -117,6 +123,11 @@ The following fields appear only when **Type** is **Bogey**.
    **Static friction**. Main wheels normally use **Left** and **Right**; the
    example nose wheel uses **None**.
 
+   .. image:: ../Images/gear_steer_brake.svg
+      :alt: Top view with the nose wheel's steering range and the brake groups of the main wheels
+      :class: no-float-left
+      :width: 100%
+
 **Retractable**
    Makes the contact follow the gear position ``gear/gear-pos-norm``, where 1
    is down and 0 is up. Below 0.99 the contact produces no force. JSBSim does
@@ -131,3 +142,6 @@ The following fields appear only when **Type** is **Bogey**.
 
 The × in a contact header removes that contact. PteroSim keeps at least one
 contact in the model, so the last one cannot be removed.
+
+The aircraft drawing is the Cessna 172 three-view by Marek Cel, CC0, from
+Wikimedia Commons.
