@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="10 2 326 172" width="782" height="413" role="img">
-<title>The seven ground contacts of the c172p on its side view</title>
+<title>The c172p's centreline contacts and main wheels on its side view</title>
 <desc>Cessna 172 drawing by Marek Cel, CC0 (Wikimedia Commons, File:Cessna_172.svg). Values from PteroSimAircrafts/c172p.</desc>
 <rect x="10" y="2" width="326" height="172" fill="#ffffff"/>
 <svg x="10" y="2" width="326" height="140" viewBox="10 2 326 140">
@@ -595,25 +595,19 @@
 <circle cx="75.62" cy="115.56" r="1.1" fill="#1f2328"/>
 <circle cx="69.45" cy="133.25" r="2.3" fill="#e8590c" stroke="#ffffff" stroke-width="0.7"/>
 <circle cx="128.43" cy="129.62" r="2.3" fill="#e8590c" stroke="#ffffff" stroke-width="0.7"/>
-<circle cx="128.43" cy="129.62" r="2.3" fill="#e8590c" stroke="#ffffff" stroke-width="0.7"/>
 <rect x="39.42" y="89.43" width="4" height="4" fill="#495057" stroke="#ffffff" stroke-width="0.7"/>
 <rect x="244.19" y="106.3" width="4" height="4" fill="#495057" stroke="#ffffff" stroke-width="0.7"/>
-<rect x="112.82" y="59.67" width="4" height="4" fill="#495057" stroke="#ffffff" stroke-width="0.7"/>
-<rect x="112.82" y="59.67" width="4" height="4" fill="#495057" stroke="#ffffff" stroke-width="0.7"/>
 <line x1="69.45" y1="133.25" x2="30" y2="156" stroke="#1f2328" stroke-width="0.45" stroke-linecap="round"/>
 <text stroke="#ffffff" stroke-width="1.4" x="31.2" y="158.31" font-size="6.6" fill="#1f2328" text-anchor="start" font-weight="600">NOSE</text>
 <text stroke="#ffffff" stroke-width="1.4" x="31.2" y="165.33" font-size="5.4" fill="#59636e" text-anchor="start" font-weight="400">bottom of the tyre, strut extended</text>
 <line x1="128.43" y1="129.62" x2="150" y2="156" stroke="#1f2328" stroke-width="0.45" stroke-linecap="round"/>
 <text stroke="#ffffff" stroke-width="1.4" x="151.2" y="158.31" font-size="6.6" fill="#1f2328" text-anchor="start" font-weight="600">LEFT_MAIN, RIGHT_MAIN</text>
-<text stroke="#ffffff" stroke-width="1.4" x="151.2" y="165.33" font-size="5.4" fill="#59636e" text-anchor="start" font-weight="400">one behind the other in this view</text>
+<text stroke="#ffffff" stroke-width="1.4" x="151.2" y="165.33" font-size="5.4" fill="#59636e" text-anchor="start" font-weight="400">one behind the other here</text>
 <line x1="41.42" y1="91.43" x2="20" y2="26" stroke="#1f2328" stroke-width="0.45" stroke-linecap="round"/>
 <text stroke="#ffffff" stroke-width="1.4" x="21.2" y="28.31" font-size="6.6" fill="#1f2328" text-anchor="start" font-weight="600">NOSE_SKID</text>
 <line x1="246.19" y1="108.3" x2="236" y2="128" stroke="#1f2328" stroke-width="0.45" stroke-linecap="round"/>
 <text stroke="#ffffff" stroke-width="1.4" x="234.8" y="130.31" font-size="6.6" fill="#1f2328" text-anchor="end" font-weight="600">TAIL_SKID</text>
-<text stroke="#ffffff" stroke-width="1.4" x="234.8" y="137.33" font-size="5.4" fill="#59636e" text-anchor="end" font-weight="400">where the c172p file puts it</text>
-<line x1="114.82" y1="61.67" x2="160" y2="24" stroke="#1f2328" stroke-width="0.45" stroke-linecap="round"/>
-<text stroke="#ffffff" stroke-width="1.4" x="161.2" y="26.31" font-size="6.6" fill="#1f2328" text-anchor="start" font-weight="600">LEFT_TIP, RIGHT_TIP</text>
-<text stroke="#ffffff" stroke-width="1.4" x="161.2" y="33.33" font-size="5.4" fill="#59636e" text-anchor="start" font-weight="400">under the wingtips</text>
+<text stroke="#ffffff" stroke-width="1.4" x="234.8" y="137.33" font-size="5.4" fill="#59636e" text-anchor="end" font-weight="400">the file puts it 0.5 m under the tail</text>
 <circle cx="246" cy="152" r="2.3" fill="#e8590c" stroke="#ffffff" stroke-width="0.7"/>
 <text stroke="#ffffff" stroke-width="1.4" x="250.5" y="154" font-size="5.4" fill="#59636e" text-anchor="start" font-weight="400">Bogey: a wheel</text>
 <rect x="244" y="160" width="4" height="4" fill="#495057" stroke="#ffffff" stroke-width="0.7"/>

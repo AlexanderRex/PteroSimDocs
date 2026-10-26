@@ -7,11 +7,21 @@ brake, retract, or caster.
 
 Each contact is a separate Gear component. A tricycle aircraft normally has
 nose, left-main, and right-main wheels; additional contacts can represent
-skids, a tail bumper, or wingtip protection. The c172p has seven:
+skids, a tail bumper, or wingtip protection. The c172p has seven. From the
+side, its wheels touch at the bottom of their tyres, and skids guard the nose
+and tail:
 
-.. image:: ../Images/editor_gear_contacts.svg
-   :alt: The seven ground contacts of the c172p on its side view
+.. image:: ../Images/gear_contacts_side.svg
+   :alt: Side view of the c172p with its nose wheel, main wheels, nose skid, and tail skid
    :class: no-float-left
+
+From above, the main wheels and the wingtip contacts come in pairs: the left
+one has negative Y, the right one positive Y.
+
+.. image:: ../Images/gear_contacts_top.svg
+   :alt: Top view of the c172p with its left and right main wheels and wingtip contacts
+   :class: no-float-left
+   :width: 70%
 
 **+ Add** → **Gear contact** in the aircraft tree adds a **Bogey** contact
 named ``Contact_1`` (the first free number) at the structural origin. Set its
