@@ -2,8 +2,8 @@ Mass Balance
 ============
 
 Mass Balance defines the empty aircraft's mass, centre of gravity, and inertia.
-Carried masses are added to these values when JSBSim calculates the loaded
-aircraft. This section does not move or resize the visual meshes.
+Fuel from :doc:`tanks` and the carried masses below are added to these values
+when JSBSim calculates the loaded aircraft. This section does not move or resize the visual meshes.
 
 .. image:: ../Images/editor_mass_balance.png
    :alt: Mass Balance section with the Pilot carried mass expanded
@@ -43,13 +43,13 @@ Aircraft
 
 **Ixy, kg·m²**
    The product of inertia coupling rotation about the X and Y axes. It is
-   normally zero when the aircraft is symmetric and the selected axes are
-   principal axes.
+   zero for an aircraft symmetric about its longitudinal plane.
 
 **Ixz, kg·m²**
-   The product of inertia coupling rotation about the X and Z axes. Use the
-   value calculated for the aircraft's mass distribution; an arbitrary value
-   introduces unintended coupling between roll and yaw.
+   The product of inertia coupling rotation about the X and Z axes. Symmetry
+   does not make it zero, so use the value calculated for the aircraft's mass
+   distribution; an arbitrary value introduces unintended coupling between
+   roll and yaw.
 
 **Iyz, kg·m²**
    The product of inertia coupling rotation about the Y and Z axes. It is
@@ -59,15 +59,15 @@ The three diagonal moments must be positive, and all six values together must
 describe a physically valid inertia tensor. If any cross product is nonzero,
 the editor also shows **Negate cross inertia**. Keep it selected for the
 default JSBSim convention used by aircraft files; clear it only when the
-source values are plain, non-negated products of inertia.
+source values are plain, non-negated products of inertia in the structural
+frame.
 
 Carried mass
 ------------
 
 Use **+ Add carried mass** for a pilot, passenger, baggage, battery, or other
 mass carried at a specific point. Each entry changes the loaded mass, centre
-of gravity, and inertia. Passengers can be added in the same way; the expanded
-**Pilot** entry above shows all fields:
+of gravity, and inertia. The expanded **Pilot** entry above shows all fields:
 
 **Called**
    A descriptive name for the mass. It identifies the entry in the editor and
@@ -78,7 +78,7 @@ of gravity, and inertia. Passengers can be added in the same way; the expanded
    0.9144 m aft, 0.3556 m left, and 0.6096 m above the structural origin.
 
 **Mass, kg**
-   The carried mass. The example pilot weighs 81.64627 kg. JSBSim adds it to
+   The carried mass. The example pilot weighs 81.65 kg. JSBSim adds it to
    the empty aircraft and accounts for its position when calculating the
    loaded CG and inertia.
 
