@@ -14,6 +14,10 @@ components after it.
 Propulsion does not add engine mass or create a visible propeller. Include the
 engine mass under :doc:`mass_balance`, and add its mesh under :doc:`parts`.
 
+.. image:: ../Images/editor_propulsion.png
+   :alt: Propulsion component in the vehicle editor
+   :class: no-float-left
+
 Fields
 ------
 
