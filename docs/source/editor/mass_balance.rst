@@ -61,8 +61,8 @@ the editor also shows **Negate cross inertia**. Keep it selected for the
 default JSBSim convention used by aircraft files; clear it only when the
 source values are plain, non-negated products of inertia.
 
-Carried mass: Pilot
--------------------
+Carried mass
+------------
 
 Use **+ Add carried mass** for a pilot, passenger, baggage, battery, or other
 mass carried at a specific point. Each entry changes the loaded mass, centre
