@@ -596,6 +596,7 @@
 <line x1="69.45" y1="350.81" x2="35.97" y2="344.91" stroke="#e8590c" stroke-width="0.7" stroke-linecap="round"/>
 <line x1="69.45" y1="350.81" x2="35.97" y2="356.72" stroke="#e8590c" stroke-width="0.4" stroke-dasharray="1.5 1.0" stroke-linecap="round"/>
 <path d="M39.45,350.81 A30,30 0 0,1 39.91,345.6" fill="none" stroke="#e8590c" stroke-width="0.6"/>
+<rect x="63.15" y="348.71" width="12.6" height="4.2" rx="1.2" fill="none" stroke="#1f2328" stroke-width="0.6" stroke-dasharray="1.6 1.0"/>
 <circle cx="69.45" cy="350.81" r="2.0" fill="#e8590c" stroke="#ffffff" stroke-width="0.7"/>
 <line x1="35.97" y1="344.91" x2="18" y2="296" stroke="#1f2328" stroke-width="0.45" stroke-linecap="round"/>
 <text stroke="#ffffff" stroke-width="1.4" x="19.2" y="298.1" font-size="6.0" fill="#1f2328" text-anchor="start" font-weight="600">Max steer 10°</text>
