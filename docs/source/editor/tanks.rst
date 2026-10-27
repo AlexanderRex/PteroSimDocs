@@ -19,9 +19,10 @@ every additional tank has the same fields.
 
 **Holds**
    Selects what the tank contains. Clear **oxidiser, not fuel** for a fuel
-   tank; select it for an oxidizer tank. Piston, turbine, and turboprop engines
-   consume fuel tanks. Rocket engines handle their fuel and oxidizer feeds
-   separately. JSBSim accepts only these two tank types.
+   tank; select it for an oxidizer tank. Only a rocket engine reads oxidizer
+   tanks. Other engine types ignore an oxidizer tank even when its number is
+   selected under **Feeds from tank**. Rocket engines handle their fuel and
+   oxidizer feeds separately. JSBSim accepts only these two tank types.
 
 **Where, m**
    Position of the tank contents in the structural frame. The three boxes are
@@ -31,23 +32,27 @@ every additional tank has the same fields.
    centre of gravity and contributes to the aircraft's inertia.
 
 **Holds, kg**
-   Maximum mass the tank can contain. The value must be greater than zero and
-   must not be lower than **Has now**. Capacity is not itself added to aircraft
-   mass; the tank structure must already be included in **Empty mass** under
-   :doc:`mass_balance`.
+   Maximum mass the tank can contain. The panel accepts zero and does not check
+   it against **Has now**. If **Holds** is zero, JSBSim issues a warning,
+   replaces it with ``0.00001`` lb, and sets the contents to zero. Capacity is
+   not itself added to aircraft mass; the tank structure must already be
+   included in **Empty mass** under :doc:`mass_balance`.
 
 **Has now, kg**
    Mass of contents at the start of a simulation. It is the initial condition,
    not a live display of the amount remaining while the simulation runs.
    JSBSim begins draining from this value and resets the tank to it when the
-   flight model is restarted. The value cannot exceed **Holds**.
+   flight model is restarted. The panel allows a value greater than **Holds**,
+   but JSBSim then refuses to load the aircraft.
 
 **Radius, m**
    Equivalent radius used to calculate the contents' own moment of inertia.
-   For a liquid tank, JSBSim treats the contents as a shrinking spherical mass,
-   so this contribution falls as the tank drains. Zero means that the file
-   supplies no tank shape and no local contents inertia is calculated. Radius
-   does not change the tank's capacity.
+   For a liquid tank, JSBSim treats the contents as a solid sphere of constant
+   radius and calculates each local moment as ``0.4 * mass * radius^2``, also
+   applying an ``inertia_factor`` retained from the aircraft file when present.
+   The moment falls as the contents' mass falls; the radius does not shrink.
+   Zero means that no local contents inertia is calculated. Radius does not
+   change the tank's capacity.
 
 **Feeding order**
    Controls which tanks an engine drains first. Priority ``1`` is highest;
@@ -56,23 +61,35 @@ every additional tank has the same fields.
    same active priority, the engine divides its demand equally between them.
    Fuel and oxidizer priorities are evaluated separately.
 
-   ``0`` means that no explicit priority is written. JSBSim then uses its
-   default priority when the aircraft is loaded. A tank must also be selected
-   under the engine's **Feeds from tank** field before that engine can use it.
+   JSBSim searches priorities only up to the total number of tanks on the
+   vehicle. With ``N`` tanks, only priorities ``1`` through ``N`` can be
+   reached; a larger value is accepted by the panel but that tank is never
+   drained. ``0`` omits the priority from the file, so JSBSim assigns its
+   default of ``1``. It therefore has the same feeding behaviour as entering
+   ``1`` explicitly.
+
+   A tank must also be selected under the engine's **Feeds from tank** field
+   before that engine can use it.
 
 **Fuel**
    Optional JSBSim name for the liquid, such as ``JET-A``, ``AVGAS``, or
    ``JP-5``. A recognized name selects JSBSim's built-in density for that fuel
    and overrides **Density** below. Leave it empty when the density is supplied
    directly. Names are case-sensitive; an unknown name logs an error and falls
-   back to JSBSim's default density.
+   back to ``6.6`` lb/gal.
 
 **Density, lb/gal**
-   Density used to convert between the tank's mass and volume. It is also used
-   for volume-based tank data retained from the aircraft file. The editor's
-   **Holds** and **Has now** values are masses, so changing density does not
-   recalculate either field. Zero omits the density from the file; JSBSim then
-   uses its default unless **Fuel** selects a built-in value.
+   Density used for the tank's gallon values, engine fuel-flow reporting in
+   gallons per hour, and any ``unusable-volume`` retained from the aircraft
+   file. **Holds** and **Has now** are already masses, so density does not change
+   the tank's weight, forces, or either of those fields. Zero omits the density
+   from the file; JSBSim then uses ``6.6`` lb/gal unless **Fuel** selects a
+   built-in value.
+
+PteroSim preserves tank elements that the panel does not expose, including
+``standpipe``, ``unusable-volume``, ``drain_location``, solid-propellant data,
+and ``inertia_factor``. It also writes capacity and location back using the
+units in which they were read.
 
 The red |times| in a tank header removes that tank. Tank numbers after it move
 down by one. PteroSim removes the deleted number from every engine feed and
