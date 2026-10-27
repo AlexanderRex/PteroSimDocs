@@ -45,6 +45,13 @@ every additional tank has the same fields.
    flight model is restarted. The panel allows a value greater than **Holds**,
    but JSBSim then refuses to load the aircraft.
 
+**Infinite**
+   Allows engines to consume from the tank without reducing its contents.
+   PteroSim saves the contents before each physics step and restores the same
+   value after JSBSim runs the step. The tank's mass and its effect on the
+   centre of gravity therefore remain constant. **Has now** must still be
+   greater than zero: an empty infinite tank does not feed an engine.
+
 **Radius, m**
    Equivalent radius used to calculate the contents' own moment of inertia.
    For a liquid tank, JSBSim treats the contents as a solid sphere of constant
