@@ -20,9 +20,11 @@ Autopilot
    **(none)** for a vehicle that does not receive an autopilot actuator frame.
    The selector is disabled while the simulation is running.
 
-   Different autopilots may put the same control on different channels.
-   PteroSim stores bindings for each selected flight stack separately and
-   keeps the bindings for the other stacks when the selection changes.
+   A binding created in the panel applies to every flight stack. A
+   ``Controls.xml`` file can also contain bindings with a ``stack`` attribute;
+   the panel shows the ones for the selected flight stack and preserves the
+   hidden bindings for other stacks. The panel cannot add or change a
+   binding's ``stack`` attribute.
 
 Bindings
 --------
@@ -37,18 +39,27 @@ Bindings
    The vehicle input that receives the mapped value. The list includes each
    motor, externally driven inputs from the vehicle's logic graphs, an
    installed gripper, the axes of a single installed gimbal, and writable
-   properties published by the loaded flight model. The list is searchable,
-   and a property path can also be entered directly.
+   properties published by the loaded flight model. Of the model properties,
+   the list contains properties declared by the vehicle and JSBSim command
+   inputs. The list is searchable. Any other writable property path can be
+   entered directly.
 
-   Changing the destination resets both ranges to suitable defaults. Motors,
-   flaps, and grippers use 0 to 1. Bidirectional controls use -1 to 1. Gimbal
-   axes use an input range of -1 to 1 and an output range of -90 to 90
-   degrees. Adjust the ranges afterwards if the destination expects something
-   else.
+   Before the model has been loaded by **Apply to FDM**, its properties are
+   not available to the panel. The menu then says **Apply once and this
+   model's own properties are listed here**; paths can still be entered by
+   hand.
+
+   Selecting a motor or gripper resets both ranges to 0 to 1. Selecting a
+   gimbal axis resets the input range to -1 to 1 and the output range to -90
+   to 90 degrees. Selecting a property does not change either range. Set the
+   ranges manually after redirecting a binding to a property; otherwise, for
+   example, a 0-to-1 motor range left on a bidirectional control can drive it
+   in only one direction.
 
    PteroSim checks entered property paths when the changes are applied. It
-   refuses a path that the loaded model does not publish as a writable
-   property and suggests a similarly named property when possible.
+   can perform this check only after the model has been loaded. It then
+   refuses a path that the model does not publish as a writable property and
+   suggests a similarly named property when possible.
 
 **Drive**
    Sends a raw channel value by hand for checking the binding. It is available
@@ -64,15 +75,19 @@ Bindings
    Shows the latest raw channel value followed by the value currently present
    at its destination. A dash means that the simulation is stopped or no frame
    has arrived. If the incoming frame does not contain the selected channel,
-   the row reports that the channel is absent. If the channel arrived but no
-   destination consumed it, the row reports that nothing reads it.
+   the row reports that the channel is absent. **nothing reads this** means
+   that the panel cannot observe where the value went; it does not prove that
+   the destination ignored it. A working gripper binding, for example, always
+   shows this message.
 
 **In, raw**
    The minimum and maximum values expected on the incoming channel. PteroSim
    clamps the received value to this range and converts its position within
    the range to a value from 0 to 1. A throttle commonly arrives as 0 to 1;
    a centred control commonly arrives as -1 to 1. The two limits must not be
-   equal.
+   equal; an equal pair is rejected as **Input range too small**. The editor
+   limits both fields to -2 through 2. If any channel in a received frame is
+   outside that range, PteroSim rejects the entire frame.
 
 **Out, applied**
    The destination value produced at the two ends of **In, raw**. Values
@@ -87,6 +102,19 @@ Bindings
    four range fields.
 
 The red **x** removes one binding. **+ Add binding** creates a row on the first
-unused frame channel and selects the first unbound motor when one is
-available. All 16 channels can be used; duplicate channel numbers remain
-valid for fan-out.
+unused frame channel and selects the first unbound motor. If every motor is
+already bound, the new row still targets **Motor 0** and asks for another
+destination. The button refuses to add a row when all 16 channel numbers are
+already in use. To fan one channel out to several destinations, add a row on
+an unused channel and then change its **Frame channel** to the duplicate
+number.
+
+Errors
+------
+
+Red text above the bindings reports failures that leave the inputs unusable.
+**No connector was fitted, so no autopilot can reach this vehicle** means that
+the selected flight-stack connector could not be installed. **Controls.xml
+was not usable and no channels were loaded** means that the controls file
+could not be parsed or validated; the rest of the line gives the specific
+cause.
