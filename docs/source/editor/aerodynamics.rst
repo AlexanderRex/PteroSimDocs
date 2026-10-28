@@ -48,7 +48,10 @@ Value sources
    Supplies the mathematical constant pi.
 
 **random (gaussian)** and **random (uniform)**
-   Supply random values using the distribution stored in the formula.
+   **random (gaussian)** uses a mean of 0 and a standard deviation of 1 by
+   default. **random (uniform)** uses values from -1 to 1 by default. The
+   ``mean``, ``stddev``, ``lower``, and ``upper`` attributes already present
+   in the vehicle file are preserved, but the panel cannot edit them.
 
 **a lookup table**
    Returns a value from a curve or multidimensional table.
@@ -73,8 +76,8 @@ The operation picker contains the following groups:
   **integer part of**, **not**, **floor of**, **ceiling of**,
   **degrees to radians**, and **radians to degrees** take exactly one
   operand.
-* **round to a multiple** takes one operand to round or a second operand that
-  specifies the multiple.
+* **round to a multiple** takes the value and, optionally, the multiple to
+  which it is rounded.
 * **if / then / else** takes exactly three operands: the condition, the value
   returned when true, and the value returned when false.
 * **rotation: alpha**, **rotation: beta**, and **rotation: gamma** take six
@@ -92,11 +95,14 @@ Declarations and new functions
 its property path and starting value, then read it from formulas like any
 other property. A declaration without an explicit value starts at zero.
 Removing a declaration while a formula still reads it makes that reference
-invalid.
+unresolved. Apply does not detect this against the currently loaded model,
+where the old property still exists. The next model load stops and reports
+the missing property by name.
 
 **+ coefficient** adds a function under **LIFT**. Its initial formula is
 ``aero/qbar-psf × metrics/Sw-sqft × 0``, so it produces zero until its
-name, axis, inputs, and constant are changed.
+constant is changed. Changing only its name or axis does not change that zero
+result.
 
 When **Apply to FDM** is pressed, PteroSim checks every property read by an
 aerodynamic formula. Apply is refused if the loaded model does not publish a
@@ -113,8 +119,8 @@ For a curve, **looked up in** selects the input property. **in** contains its
 breakpoints and **out** contains the returned values. The graph displays the
 same pairs. Values between rows are interpolated. Below the first breakpoint
 or above the last one, the nearest end value is held constant. **+ Add row**
-appends another breakpoint and copies the previous output as its initial
-value.
+places another breakpoint one step beyond the last row and copies the last
+output as its initial value.
 
 A two-dimensional table is shown as a grid. The upper-left label identifies
 the row property, and the first column contains its numeric breakpoints. The
@@ -164,9 +170,9 @@ Grid
 ``aero/coefficient/CDwbh`` contains a two-dimensional table. Its rows use
 ``aero/alpha-rad``; the numeric column breakpoints are 0, 10, 20, and 30.
 In the source model, the hidden column property is
-``fcs/flap-pos-deg``, so each column contains the angle-of-attack values
-for one flap position. The table result is multiplied by dynamic pressure,
-reference wing area, and the ``kCDge`` helper.
+``fcs/flap-pos-deg``, so each column contains drag values across the listed
+angles of attack for one flap position. The table result is multiplied by
+dynamic pressure, reference wing area, and the ``kCDge`` helper.
 
 .. image:: ../Images/editor_aerodynamics_04.png
    :alt: A grid indexed by angle of attack and flap position
