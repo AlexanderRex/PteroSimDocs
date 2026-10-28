@@ -54,6 +54,7 @@ Components
    logic_graphs
    parts
    chase_camera
-   aircraft_stores
+   gimbal
+   gripper
    collision
    sensors
