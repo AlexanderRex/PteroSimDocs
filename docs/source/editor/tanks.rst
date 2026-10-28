@@ -49,8 +49,9 @@ every additional tank has the same fields.
    Allows engines to consume from the tank without reducing its contents.
    PteroSim saves the contents before each physics step and restores the same
    value after JSBSim runs the step. The tank's mass and its effect on the
-   centre of gravity therefore remain constant. **Has now** must still be
-   greater than zero: an empty infinite tank does not feed an engine.
+   centre of gravity therefore remain constant. To feed an engine, **Has now**
+   must exceed the tank's ``unusable-volume``, converted to mass using its
+   density. Without ``unusable-volume``, that threshold is zero.
 
 **Radius, m**
    Equivalent radius used to calculate the contents' own moment of inertia.
@@ -86,12 +87,13 @@ every additional tank has the same fields.
    back to ``6.6`` lb/gal.
 
 **Density, lb/gal**
-   Density used for the tank's gallon values, engine fuel-flow reporting in
-   gallons per hour, and any ``unusable-volume`` retained from the aircraft
-   file. **Holds** and **Has now** are already masses, so density does not change
-   the tank's weight, forces, or either of those fields. Zero omits the density
-   from the file; JSBSim then uses ``6.6`` lb/gal unless **Fuel** selects a
-   built-in value.
+   Density used for the tank's gallon values and any ``unusable-volume``
+   retained from the aircraft file. JSBSim reports each engine's fuel flow in
+   gallons per hour using the density of the last fuel tank in the aircraft
+   file, regardless of which tank feeds that engine. **Holds** and **Has now**
+   are already masses, so density does not change the tank's weight, forces,
+   or either of those fields. Zero omits the density from the file; JSBSim
+   then uses ``6.6`` lb/gal unless **Fuel** selects a built-in value.
 
 PteroSim preserves tank elements that the panel does not expose, including
 ``standpipe``, ``unusable-volume``, ``drain_location``, solid-propellant data,
