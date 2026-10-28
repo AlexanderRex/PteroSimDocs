@@ -86,8 +86,10 @@ Bindings
    the range to a value from 0 to 1. A throttle commonly arrives as 0 to 1;
    a centred control commonly arrives as -1 to 1. The two limits must not be
    equal; an equal pair is rejected as **Input range too small**. The editor
-   limits both fields to -2 through 2. If any channel in a received frame is
-   outside that range, PteroSim rejects the entire frame.
+   limits both fields to -2 through 2. PteroSim rejects a frame if it is too
+   short to contain the highest bound channel, or if any channel from zero
+   through that channel is NaN or outside -2 through 2; higher, unused
+   channels are not checked.
 
 **Out, applied**
    The destination value produced at the two ends of **In, raw**. Values
