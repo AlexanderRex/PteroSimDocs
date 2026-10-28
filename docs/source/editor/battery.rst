@@ -52,8 +52,12 @@ the simulation. A vehicle can have one battery pack. Add it with **+ Add** →
 **Warning under (%)**
    Low-battery threshold, from 0 to 100%. The manual-flight HUD shows a
    **LOW BATTERY** warning when the displayed charge, rounded to a whole
-   percent, drops below this value. The threshold is also included in battery
-   status available to scripts. It does not stop the motors or reserve charge.
+   percent, drops below this value. The resulting low-battery flag is also
+   available to scripts. It does not stop the motors or reserve charge.
+   PX4 receives battery voltage, current, and charge percentage; ArduPilot
+   receives voltage and current. Neither receives this threshold. Each
+   autopilot uses its own battery failsafe settings and may land or return to
+   launch as the battery drains.
 
 **Avionics (W)**
    Constant electrical power drawn in addition to the motors. PteroSim
@@ -64,7 +68,8 @@ the simulation. A vehicle can have one battery pack. Add it with **+ Add** →
 **Infinite**
    Keeps the pack at its **Initial charge** throughout the run. Motors and
    avionics still draw current, so the voltage still sags under load, but
-   charge does not fall. This does not bypass the initial charge setting.
+   charge does not fall. A pack starting at 50% charge stays at 50% throughout
+   the flight.
 
 The battery configuration does not specify mass or position. Account for the
 physical pack in **Mass Balance** so its weight affects the flight model.
