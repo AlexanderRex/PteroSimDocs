@@ -211,8 +211,9 @@ Actuation and travel
    Models a mechanical actuator. **lag** smooths changes; **rate_limit** caps
    how quickly the result changes; **deadband_width** removes small commands;
    **hysteresis_width** models mechanical play; and **bias** offsets the
-   result. With hysteresis, the output waits until the input moves more than
-   half the width, then follows while remaining half a width behind it.
+   result. With hysteresis, the output holds while the input stays within half
+   the width of it, then follows half a width behind. After a reversal, the
+   input must cross the whole width before the output moves.
 
    Leave an effect's field empty to disable it. Writing ``0`` in **lag** or
    **rate_limit** does not disable that effect: it freezes the output.
