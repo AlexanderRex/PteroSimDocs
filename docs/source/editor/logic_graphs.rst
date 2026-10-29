@@ -33,9 +33,12 @@ Channels
    value enables it. The menu contains properties declared by the logic graphs
    and properties published by the loaded model.
 
-   The selected property must exist when the model loads. A missing property
-   prevents the model from loading, so arbitrary text cannot be entered in
-   this field. Declare a new property first if it must be used here.
+   The selected property must already exist when JSBSim starts reading this
+   channel. JSBSim reads ``system``, ``autopilot``, ``flight_control``, then
+   ``aerodynamics``. A property published by a later channel, graph, or the
+   Aerodynamics section is therefore too late and prevents the model from
+   loading. The menu does not filter out these late properties. Declare the
+   property in the control system or select one that exists earlier.
 
 **+ property**
    Declares a property owned by this control system. A new declaration starts
@@ -57,6 +60,10 @@ and one horizontal lane per channel in that graph. Channels and blocks execute
 in their listed order. A block can therefore consume a value published by an
 earlier block.
 
+.. image:: ../Images/editor_logic_graph_window.png
+   :alt: Logic graph window with a selected block and its inspector
+   :class: no-float-left
+
 The graph window uses the following controls:
 
 * **+ Block** or a double-click on empty canvas opens the block-type menu. A
@@ -76,8 +83,8 @@ The graph window uses the following controls:
 
 The canvas draws a wire by matching an input path to a published path. If two
 blocks publish the same path, the simulator keeps the value written later in
-execution order. The graph warns about duplicate publishers when the vehicle
-is written.
+execution order. After the vehicle is written, the status line in the vehicle
+panel warns about duplicate publishers; the graph window itself does not.
 
 Common block fields
 -------------------
@@ -98,26 +105,47 @@ Common block fields
    evaluate their own conditions or properties have none.
 
 **delay**
-   Holds the block's result back by the specified time. With **frames** clear,
-   the value is seconds; with it selected, the value is simulation frames.
-   Zero disables the delay. **linear_actuator** ignores this field and does
-   not display it.
+   JSBSim applies this field only to **actuator** and **switch** blocks. Other
+   block types may display and preserve it, but their calculations ignore it;
+   **linear_actuator** does not display it.
+
+   With **frames** selected, the value counts executions of the channel, not
+   rendered or physics frames. With **frames** clear, the value is seconds;
+   JSBSim divides it by the channel step and rounds down to a whole number of
+   executions. A delay shorter than one channel step therefore becomes zero.
 
 **Clip to**
    Limits the result between the minimum and maximum. Both bounds must be
    filled or neither is written. A bound can be a number or a property.
    **linear_actuator** ignores clipping and does not display these fields.
+   **distributor** displays them but does not apply them.
 
 **Output**
    Adds another property that receives the same result. Removing every
    explicit output does not remove the implicit output derived from **Name**.
+   A **distributor** does not publish a result, so its implicit property stays
+   zero and its **Output** rows have no effect.
 
 **Runs**
    Shows the block's position in its channel's execution order. It is
    read-only; blocks added in the editor are appended to the channel.
 
-Where a block field accepts a number, it also accepts a property path. The
-block then reads the field's value from that property every simulation step.
+Many numeric fields also accept a property path and then read its value every
+simulation step. The inspector's generic hint does not apply to every field.
+The following fields accept numbers only; entering a property prevents the
+model from loading:
+
+* **summer**: **bias**;
+* **deadband**: **gain**;
+* **actuator**: **deadband_width**, **hysteresis_width**, and **bias**;
+* **aerosurface_scale**: **domain.min**, **domain.max**, **range.min**, and
+  **range.max**;
+* **kinematic**: every position and time under **Stops**;
+* **linear_actuator**: **module**, **hysteresis**, **lag**, **rate**, and
+  **gain**.
+
+Fields described below as property paths, such as angle and waypoint
+coordinates, require a property rather than a literal number.
 
 Block types
 -----------
@@ -151,9 +179,9 @@ Controllers and signal shaping
    **kp** also multiplies the integral and derivative terms.
 
 **integrator**
-   Integrates its input over time and multiplies the accumulated result by
-   **c1**. **trigger** pauses integration while positive and resets the
-   accumulated value while negative.
+   Integrates **c1** multiplied by the input. This distinction matters when
+   **c1** is a property that changes during the run. **trigger** pauses
+   integration while positive and resets the accumulated value while negative.
 
 **lag_filter**
    Applies a first-order low-pass filter. **c1** sets its frequency
@@ -182,8 +210,12 @@ Actuation and travel
 **actuator**
    Models a mechanical actuator. **lag** smooths changes; **rate_limit** caps
    how quickly the result changes; **deadband_width** removes small commands;
-   **hysteresis_width** gives rising and falling motion different thresholds;
-   and **bias** offsets the result. Empty fields leave that effect disabled.
+   **hysteresis_width** models mechanical play; and **bias** offsets the
+   result. With hysteresis, the output waits until the input moves more than
+   half the width, then follows while remaining half a width behind it.
+
+   Leave an effect's field empty to disable it. Writing ``0`` in **lag** or
+   **rate_limit** does not disable that effect: it freezes the output.
 
 **aerosurface_scale**
    Maps one input range to a surface-position range. **domain.min** and
@@ -204,11 +236,13 @@ Actuation and travel
    Models an incremental linear or rotary mechanism. **set** enables updates
    and **reset** clears its stored position. **versus** restricts accepted
    motion to one direction: positive, negative, or unrestricted at zero.
-   **module** is the size of one complete increment, **rate** is the fraction
-   of that increment used as the wrap threshold, and **hysteresis** is the
-   minimum input change accepted. **bias** offsets the stored position,
-   **gain** scales the result, and **lag** filters it. This type uses its own
-   state handling and ignores the common **delay** and **Clip to** fields.
+   **module** is the input's full repeating range, maximum minus minimum. Each
+   passage through that range adds or subtracts one module from the stored
+   position. **rate** is the fraction of the module used as the wrap threshold,
+   and **hysteresis** is the minimum input change accepted. **bias** offsets
+   the stored position, **gain** scales the result, and **lag** filters it.
+   This type uses its own state handling and ignores the common **delay** and
+   **Clip to** fields.
 
 Conditions and formulas
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,6 +258,8 @@ Conditions and formulas
 **fcs_function**
    Computes a formula with the same property, number, arithmetic, comparison,
    conditional, lookup, and other operators used by Aerodynamics functions.
+   If the block already has an input, JSBSim multiplies the formula result by
+   that input. A new **fcs_function** has no input.
    An incomplete formula is not written; the block keeps its last valid
    formula until the edit becomes valid.
 
@@ -231,8 +267,13 @@ Conditions and formulas
    Writes values directly to one or more properties when a case matches.
    **Case when** contains one condition per line. **sets** contains a property
    followed by its value on each line. The **type** attribute is
-   ``inclusive`` to run every matching case or ``exclusive`` to stop after the
-   first match.
+   ``inclusive`` to run every matching case. In ``exclusive`` mode, the first
+   matching conditional case suppresses later conditional cases; a case with
+   no condition still runs whenever it is reached.
+
+   A distributor writes only the properties listed under **sets**. It does not
+   publish under its own **Name**, and its **Clip to** and **Output** fields do
+   nothing.
 
 Angles and navigation
 ~~~~~~~~~~~~~~~~~~~~~
