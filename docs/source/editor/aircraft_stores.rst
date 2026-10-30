@@ -11,9 +11,10 @@ Gimbal
 ------
 
 A gimbal is an invisible three-axis mount. Its mount has a fixed pose on the
-vehicle; its head turns from that pose in yaw, roll, then pitch. Cameras,
-sensors, visual parts, another gimbal, or the gripper can ride the moving head.
-A vehicle may contain more than one gimbal.
+vehicle; its head turns from that pose in yaw, roll, then pitch. A fixture or
+gripper can ride the head or an individual gimbal stage. Another gimbal and a
+sensor that provides a **Rides** setting can ride the head only. A propeller
+cannot ride a gimbal. A vehicle may contain more than one gimbal.
 
 .. image:: ../Images/editor_aircraft_stores_gimbal.png
    :alt: Gimbal section of the vehicle editor
@@ -23,7 +24,9 @@ A vehicle may contain more than one gimbal.
    The unique name shown in the aircraft tree and written to ``Visual.xml``.
    Other components use this name in their **Rides** or parent setting.
    Renaming the gimbal updates those references. The name cannot be empty or
-   duplicate the name of another visual part, gimbal, or gripper.
+   duplicate the name of another visual part, gimbal, or gripper. It cannot
+   contain a period because a period separates a gimbal name from a stage
+   name, as in ``gimbal_1.yaw``.
 
 **Mount (m)**
    Position of the fixed mount as X, Y, and Z in metres. When the gimbal rides
@@ -78,10 +81,10 @@ Gripper
 
 The gripper opens and closes around payload actors. Closing it takes the
 nearest detached payload within **Reach**; opening it releases the held
-payload. The payload follows the gripper's position and orientation while it
-is held, and its mass is added to JSBSim as a point mass. The editor permits
-one gripper per vehicle because the gripper input binding does not identify a
-specific gripper.
+payload. While held, the payload keeps the pose it had relative to the gripper
+when taken. Its mass and centre of mass are represented in JSBSim by a point
+mass. The editor permits one gripper per vehicle because the gripper input
+binding does not identify a specific gripper.
 
 .. image:: ../Images/editor_aircraft_stores_gripper.png
    :alt: Gripper section of the vehicle editor
@@ -94,17 +97,21 @@ specific gripper.
    references.
 
 **Mount (m)**
-   Point at which a payload is held, as X, Y, and Z in metres. On the airframe
-   it is measured from the vehicle centre of mass. When the gripper rides a
-   gimbal or one of its stages, it is measured in that parent frame.
+   Centre of the **Reach** sphere, as X, Y, and Z in metres. On the airframe it
+   is measured from the vehicle centre of mass. When the gripper rides a
+   gimbal or one of its stages, it is measured in that parent frame. A payload
+   is not moved to this point when taken; it keeps its current pose relative
+   to the gripper.
 
    When the FDM loads, PteroSim creates a zero-mass JSBSim point mass at the
    gripper's fitted vehicle position. Closing on a payload changes that point
-   mass to the payload's mass; releasing it returns the mass to zero.
+   mass to the payload's mass and moves it to the payload's centre of mass.
+   Releasing the payload returns the point mass to zero mass.
 
 **Direction (deg)**
-   Orientation of the gripper as roll, pitch, and yaw in degrees. A held
-   payload takes this orientation and follows it while attached.
+   Stored roll, pitch, and yaw values. They currently do not affect the
+   gripper: **Reach** is a sphere, and a held payload keeps the pose it had
+   relative to the gripper when taken.
 
 **Reach (m)**
    Radius around **Mount** searched when the open gripper closes. PteroSim
