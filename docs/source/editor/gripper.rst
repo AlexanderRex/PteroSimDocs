@@ -1,4 +1,0 @@
-Gripper
-========
-
-Work in progress.

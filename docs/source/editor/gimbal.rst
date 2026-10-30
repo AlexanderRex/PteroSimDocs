@@ -1,4 +1,0 @@
-Gimbal
-======
-
-Work in progress.
