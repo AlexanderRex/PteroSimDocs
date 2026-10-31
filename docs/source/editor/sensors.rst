@@ -27,9 +27,9 @@ Common fields
 **Enabled**
    Installs or removes the sensor's data source. A disabled sensor produces no
    samples. The first IMU must be enabled for HIL telemetry. The first GPS must
-   be enabled for PX4, Betaflight, and connectors that use the default GPS
-   requirement; ArduPilot does not require one. A barometer is optional; PX4
-   barometer fields are omitted when the first barometer is absent or disabled.
+   be enabled for PX4 and Betaflight; ArduPilot does not require one. A
+   barometer is optional; PX4 barometer fields are omitted when the first
+   barometer is absent or disabled.
    A later enabled sensor does not replace a disabled first sensor of the same
    type for these checks.
 
@@ -203,9 +203,9 @@ calculated from the noisy velocity; course is held at zero below 0.1 m/s.
 
 **horizontal_drift_sigma_m**
    One-sigma horizontal position error in metres. Independent north and east
-   errors use this value. Each error starts at zero and approaches the full
-   configured distribution over roughly **position_drift_tau_s**. Zero
-   disables horizontal position error.
+   errors use this value. Each error starts at zero, reaches about 60% of the
+   configured sigma after one **position_drift_tau_s**, and reaches nearly all
+   of it after three. Zero disables horizontal position error.
 
 **position_drift_tau_s**
    Correlation time shared by horizontal and vertical position error, in
@@ -220,9 +220,9 @@ calculated from the noisy velocity; course is held at zero below 0.1 m/s.
 
 **vertical_drift_sigma_m**
    One-sigma altitude error in metres. Positive error increases the reported
-   altitude. The error starts at zero and approaches the full configured
-   distribution over roughly **position_drift_tau_s**. Zero disables vertical
-   position error.
+   altitude. The error starts at zero, reaches about 60% of the configured
+   sigma after one **position_drift_tau_s**, and reaches nearly all of it after
+   three. Zero disables vertical position error.
 
 The simulated receiver always reports a 3D fix, 12 visible satellites, and
 HDOP and VDOP of 1; these values are not editor fields. When noise is enabled,
