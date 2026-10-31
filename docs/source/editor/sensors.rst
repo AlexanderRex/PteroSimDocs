@@ -7,8 +7,10 @@ state. The SDK addresses sensors by name. An autopilot connector uses the
 first sensor component of each required type; adding redundant sensors does
 not make the connected autopilot fuse all of them.
 
-This page covers the barometer, IMU, and GPS. Camera sensors are not covered
-here.
+The add menu offers ``airspeed``, ``barometer``, ``camera``, ``depthcamera``,
+``gps``, ``imu``, and ``temperature`` sensors. This page covers the barometer,
+IMU, and GPS. Airspeed data is also sent to PX4 through ``HIL_SENSOR``. Camera,
+depth-camera, airspeed, and temperature fields are not covered here.
 
 Common fields
 -------------
@@ -24,9 +26,12 @@ Common fields
 
 **Enabled**
    Installs or removes the sensor's data source. A disabled sensor produces no
-   samples. HIL telemetry requires an enabled IMU; PX4 HIL also requires an
-   enabled GPS. A barometer is optional; PX4 barometer fields are omitted when
-   it is absent or disabled.
+   samples. The first IMU must be enabled for HIL telemetry. The first GPS must
+   be enabled for PX4, Betaflight, and connectors that use the default GPS
+   requirement; ArduPilot does not require one. A barometer is optional; PX4
+   barometer fields are omitted when the first barometer is absent or disabled.
+   A later enabled sensor does not replace a disabled first sensor of the same
+   type for these checks.
 
 **Noise**
    Enables the complete measurement-error model for this sensor. Clearing it
@@ -40,10 +45,11 @@ Common fields
    sensor's name also changes its noise streams.
 
 **Rate (Hz)**
-   Requested reporting frequency in simulated seconds. It must be positive
-   and cannot exceed the physics rate in operation. Samples can occur only on
-   physics steps: PteroSim uses an integer step interval, so a value that does
-   not divide the physics rate may produce a higher effective rate.
+   Requested reports per simulated second. The editor accepts 1 to 1000 Hz. At
+   simulation start, a value above the physics rate is silently reduced to the
+   physics rate. Samples can occur only on physics steps: PteroSim uses an
+   integer step interval, so a value that does not divide the physics rate may
+   produce a higher effective rate.
 
 **Position (m)**
    Sensor position in the vehicle frame: X forward, Y right, and Z up. The IMU
@@ -55,6 +61,12 @@ Common fields
    Mount orientation as roll, pitch, and yaw. The IMU rotates accelerometer,
    gyroscope, and magnetometer readings into these mounted axes. The current
    barometer and GPS models do not use orientation.
+
+**Rides**
+   Appears on sensors that can be mounted on a gimbal. It selects the airframe
+   or supported gimbal part that provides the sensor's parent frame. See
+   :doc:`Aircraft Stores <aircraft_stores>` for gimbal stages and attachment
+   rules.
 
 Barometer
 ---------
@@ -191,7 +203,9 @@ calculated from the noisy velocity; course is held at zero below 0.1 m/s.
 
 **horizontal_drift_sigma_m**
    One-sigma horizontal position error in metres. Independent north and east
-   errors use this value. Zero disables horizontal position error.
+   errors use this value. Each error starts at zero and approaches the full
+   configured distribution over roughly **position_drift_tau_s**. Zero
+   disables horizontal position error.
 
 **position_drift_tau_s**
    Correlation time shared by horizontal and vertical position error, in
@@ -206,7 +220,9 @@ calculated from the noisy velocity; course is held at zero below 0.1 m/s.
 
 **vertical_drift_sigma_m**
    One-sigma altitude error in metres. Positive error increases the reported
-   altitude. Zero disables vertical position error.
+   altitude. The error starts at zero and approaches the full configured
+   distribution over roughly **position_drift_tau_s**. Zero disables vertical
+   position error.
 
 The simulated receiver always reports a 3D fix, 12 visible satellites, and
 HDOP and VDOP of 1; these values are not editor fields. When noise is enabled,
