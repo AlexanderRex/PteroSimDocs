@@ -3,14 +3,16 @@ Sensors
 
 Sensors are defined in ``Sensors.xml``. A vehicle may contain multiple sensors
 of the same type. Each one has its own name, pose, update rate, and noise
-state. The SDK addresses sensors by name. An autopilot connector uses the
-first sensor component of each required type; adding redundant sensors does
-not make the connected autopilot fuse all of them.
+state. The SDK addresses sensors by name. For the barometer, IMU, and GPS, an
+autopilot connector uses the first component of each required type; adding
+redundant physical sensors does not make the connected autopilot fuse all of
+them. Multiple active camera streams are announced separately.
 
 The add menu offers ``airspeed``, ``barometer``, ``camera``, ``depthcamera``,
 ``gps``, ``imu``, and ``temperature`` sensors. This page covers the barometer,
-IMU, and GPS. Airspeed data is also sent to PX4 through ``HIL_SENSOR``. Camera,
-depth-camera, airspeed, and temperature fields are not covered here.
+IMU, GPS, and onboard streaming camera. Airspeed data is also sent to PX4
+through ``HIL_SENSOR``. Depth-camera, airspeed, and temperature fields are not
+covered here.
 
 Common fields
 -------------
@@ -228,3 +230,108 @@ The simulated receiver always reports a 3D fix, 12 visible satellites, and
 HDOP and VDOP of 1; these values are not editor fields. When noise is enabled,
 PX4 also receives the horizontal and vertical drift sigmas as the GPS accuracy.
 When noise is disabled, those reported accuracies are zero.
+
+Camera
+------
+
+The camera sensor renders the view from a point on the vehicle. It is separate
+from **Chase camera**: this component produces image frames for streaming and
+the SDK. It also appears among the onboard views available through the vehicle
+camera cycle. A vehicle may carry multiple camera sensors.
+
+.. image:: ../Images/editor_sensors_camera.png
+   :alt: Camera sensor section of the vehicle editor
+   :class: no-float-left
+
+The camera has no **Noise** field. It captures the rendered scene directly.
+Both output modes open on **Start**, close on **Stop** or a crash, and can be
+enabled together. A single render is shared by every active output.
+
+Camera placement
+~~~~~~~~~~~~~~~~
+
+**Position (m)** and **Orientation (deg)** set the optical viewpoint. With a
+zero orientation the camera looks along its positive X axis, with Y right and
+Z up in the vehicle frame.
+
+**Rides**
+   Selects **airframe** or the head of a gimbal. Position and orientation are
+   measured in that parent frame. A camera on a gimbal moves and turns with
+   the head; individual yaw and roll stages are not available here.
+
+Image
+~~~~~
+
+**field_of_view**
+   Horizontal field of view in degrees. The accepted range is 1 to 170
+   degrees. It applies to captured frames and to the onboard view.
+
+**image_height**
+   Output height in pixels, from 64 to 4096.
+
+**image_width**
+   Output width in pixels, from 64 to 4096. Width and height set the output
+   aspect ratio and the amount of image data that must be rendered, encoded,
+   or transferred. Changing either dimension restarts an active H.264 encoder;
+   the raw stream carries the dimensions in every frame header.
+
+**show_debug_lines**
+   Includes the world's debug line batches in the captured image. Clear it to
+   keep paths and other line diagnostics out of vision data. This setting does
+   not control the camera part's own editor visualization.
+
+For a camera, **Rate (Hz)** is the requested frame rate in simulated time.
+Rendering is also limited to one frame per rendered application frame; missed
+instants are skipped rather than produced later. The H.264 stream additionally
+limits delivery to this rate in wall-clock time.
+
+H.264 RTP stream
+~~~~~~~~~~~~~~~~
+
+**stream**
+   Sends the camera as an H.264 RTP stream over UDP while the simulation is
+   running. PteroSim uses its bundled FFmpeg and writes an SDP description for
+   the running stream. When a connected autopilot provides a MAVLink companion
+   link, PteroSim advertises each active stream as a MAVLink camera so a ground
+   station can discover its resolution, rate, bitrate, field of view, and RTP
+   port.
+
+   MAVLink start and stop streaming commands are acknowledged but do not open
+   or close the encoder. The stream follows the PteroSim simulation state.
+
+**stream_bitrate_kbps**
+   Requested H.264 bitrate in kbit/s. The accepted range is 1 to 800000. This
+   is the encoder target; the actual network rate also depends on the encoded
+   scene and encoder.
+
+**stream_host**
+   Destination hostname or IP address that receives the UDP packets. It must
+   contain only letters, digits, periods, and hyphens.
+
+**stream_port**
+   Base UDP port for RTP. The next port is reserved for RTCP, so the valid base
+   range is 1 to 65534. The effective RTP port is the configured value plus
+   twice the aircraft instance ID. PteroSim refuses to open a second active
+   stream whose RTP/RTCP pair overlaps an existing camera stream.
+
+Raw TCP stream
+~~~~~~~~~~~~~~
+
+**raw_stream**
+   Opens a TCP server that sends lossless BGRA8 frames to connected clients.
+   Frames use the little-endian PTF1 format: a header containing dimensions,
+   row stride, frame and capture times, camera intrinsics, and camera pose,
+   followed by packed image bytes. The camera does not render for this output
+   until at least one client is connected.
+
+**raw_stream_host**
+   Local IPv4 address on which the TCP server listens. It must be a literal
+   IPv4 address, not a hostname. ``127.0.0.1`` accepts clients from the same
+   computer only; use an address of another interface when remote clients must
+   connect.
+
+**raw_stream_port**
+   Base TCP listening port. It must be set to a value from 1 to 65535 before
+   **raw_stream** can be enabled. The effective port is the configured value
+   plus twice the aircraft instance ID. A port already used by another raw
+   stream cannot be opened a second time.
