@@ -421,7 +421,7 @@ Props
 
 A prop is a .glb from the simulator's machine placed in the scene. Props are spawned and removed while the simulation is stopped.
 
-.. py:method:: PteroSim.spawn_prop(mesh_path, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, mode="falls", mass_kg=None, scale=None, timeout=None)
+.. py:method:: PteroSim.spawn_prop(mesh_path, *, lat=None, lon=None, alt=None, x=None, y=None, z=None, yaw=0.0, pitch=0.0, roll=0.0, mode="falls", mass_kg=None, scale=None, friction=None, restitution=None, density_kg_m3=None, timeout=None)
 
    Spawn a prop: a .glb on the simulator's machine, stood on the ground under the point.
 
@@ -447,6 +447,14 @@ A prop is a .glb from the simulator's machine placed in the scene. Props are spa
    :param scale: Its size against the .glb's, alike on every axis, about its lowest point, so it
                  still stands on the ground; None keeps the .glb's own. A mass from its volume
                  follows the scale; a given mass_kg stays.
+   :param friction: Its surface's friction coefficient, static and sliding alike, what aircraft
+                    and other props slide on it by; None keeps its material's. Refused for a prop
+                    only shown.
+   :param restitution: Its surface's restitution, from 0 (no bounce) to 1; None keeps its
+                       material's. Refused for a prop only shown.
+   :param density_kg_m3: Its material's density, which a prop that falls without mass_kg
+                         weighs its hull's volume at; None keeps its material's. Refused for the other
+                         modes and with mass_kg.
    :param timeout: Seconds to wait for the answer; None waits as long as the ground under the
                    point takes to load (default None). A spawn out of time still lands once the ground
                    has loaded, and no id comes back to remove it by.
@@ -456,10 +464,13 @@ A prop is a .glb from the simulator's machine placed in the scene. Props are spa
    :raises ValueError: an unknown mode, a timeout not over 0, or a position that is not one
        full set, lat/lon/alt or x/y/z, alone.
    :raises grpc.RpcError: INVALID_ARGUMENT for no file at mesh_path, a mass or a scale that is not
-       finite and over 0, or a mass for a prop that does not fall; FAILED_PRECONDITION while
+       finite and over 0, a friction under 0 or not finite, a restitution outside 0 to 1, a
+       density that is not finite and over 0, a mass or a density for a prop that does not
+       fall, a density with a mass, or a friction or a restitution for a prop only shown;
+       FAILED_PRECONDITION while
        the simulation runs or is paused, or ("Could not spawn <path>: <reason>") when the
-       file is no .glb, the ground under the point did not load, or the scale leaves a mass
-       from its volume under the gram Chaos holds; DEADLINE_EXCEEDED when the
+       file is no .glb, the ground under the point did not load, or the scale or the density
+       leaves a mass from its volume under the gram Chaos holds; DEADLINE_EXCEEDED when the
        timeout runs out.
 
 .. py:property:: Prop.prop_id
