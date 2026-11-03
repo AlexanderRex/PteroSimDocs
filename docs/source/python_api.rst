@@ -75,10 +75,18 @@ Simulation lifecycle
 
    Start simulation (physics running).
 
+   First waits until no aircraft is preparing its collision hulls (status().preparing_aircraft
+   is empty), then starts.
+
+   :raises TimeoutError: aircraft still preparing their hulls after a minute; it names them, and
+       the simulation stays as it was.
    :raises grpc.RpcError: FAILED_PRECONDITION. "started (Running), not started:
        <aircraft>: <reason>" when some aircraft could not be started, such as
        one with no ground under it; the rest run. "not started: <reason>" when
-       none could, or when the simulation is not Idle; it stays as it was.
+       none could, or when the simulation is not Idle; it stays as it was. "not
+       started: the hulls of '<aircraft>' are being made" when a mesh file changed
+       on disk since the aircraft was last loaded (spawned or stopped) or saved,
+       which Start alone then sees; call start() again.
 
 .. py:method:: PteroSim.hold()
 
@@ -114,6 +122,10 @@ Simulation status
              - **time_scale** (float): Current time scale multiplier.
              - **physics_frequency_hz** (float): Physics update rate in Hz.
              - **aircraft_count** (int): Number of spawned aircraft.
+             - **preparing_aircraft** (list[str]): Names of the aircraft whose collision hulls are
+               still being made, as after the spawn of a new or edited vehicle; the simulator
+               refuses to start while any it would start are, and start() waits until none are
+               listed. One it would refuse anyway, with no ground under it say, is listed too.
    :rtype: SimStatus
 
 .. py:method:: PteroSim.clock()
@@ -1282,6 +1294,9 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: aircraft_count
       :type: int
+
+   .. py:attribute:: preparing_aircraft
+      :type: list[str]
 
 .. py:class:: ClockInfo
 
