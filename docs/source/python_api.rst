@@ -219,6 +219,67 @@ One wind for the whole world: the clouds, rain and trees move with it and every 
        INVALID_ARGUMENT for a value out of range or one the model does not read,
        FAILED_PRECONDITION for the other of Milspec and Tustin mid-run.
 
+Weather and time
+^^^^^^^^^^^^^^^^
+
+Visual weather and the local start time; any license. The flight models fly in set_wind()'s wind; the sun follows the start time and simulation time.
+
+.. py:method:: PteroSim.set_weather(preset)
+
+   Set the sky's visual weather. Available with any license; flight physics uses set_wind().
+
+   Earth accepts every preset. Mars has no rain or snow; get_weather().allowed
+   lists the presets available on the current planet. Weather can be changed
+   in any simulation state::
+
+       sim.set_weather("partly_cloudy")
+
+   :param preset: A lowercase proto WeatherPreset name without ``WEATHER_``.
+
+   :raises ValueError: If preset is unknown or ``"unspecified"``.
+   :raises grpc.RpcError: FAILED_PRECONDITION when the planet does not have
+       that weather or the sky cannot show it; the simulator's refusal
+       explains why.
+
+.. py:method:: PteroSim.get_weather()
+
+   Get the current visual weather and the presets allowed on this planet.
+
+   :returns:
+
+             - **preset** (str): Current lowercase WeatherPreset name.
+             - **allowed** (list[str]): Presets that this planet accepts.
+   :rtype: WeatherState
+
+.. py:method:: PteroSim.set_start_time(local)
+
+   Set the local date and time the run starts at, to the second.
+
+   Pass a naive datetime: local time at the origin uses its nautical time
+   zone (longitude rounded to the nearest 15 degrees; UTC on Mars). The
+   clock advances with simulation time. Changing this mid-run moves the
+   sun immediately. Microseconds are discarded::
+
+       sim.set_start_time(datetime(2026, 6, 21, 21, 30))
+
+   :param local: Naive local date and time at the origin.
+
+   :raises TypeError: If local is not a datetime (a date has no time of day).
+   :raises ValueError: If local has a time zone.
+   :raises grpc.RpcError: FAILED_PRECONDITION if the map has no GeoReferencingSystem.
+
+.. py:method:: PteroSim.get_start_time()
+
+   Get the local start date and time and the origin's UTC offset.
+
+   :returns:
+
+             - **local** (datetime): Naive local date and time, to the second.
+             - **utc_offset_hours** (int): Nautical time zone offset; zero on Mars.
+   :rtype: StartTime
+
+   :raises grpc.RpcError: FAILED_PRECONDITION if the map has no GeoReferencingSystem.
+
 Geographic origin
 ^^^^^^^^^^^^^^^^^
 
@@ -1253,6 +1314,26 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: from_deg
       :type: float
+
+.. py:class:: WeatherState
+
+   The current visual weather and presets allowed on this planet, from get_weather().
+
+   .. py:attribute:: preset
+      :type: str
+
+   .. py:attribute:: allowed
+      :type: list[str]
+
+.. py:class:: StartTime
+
+   The local date and time the simulation starts at, and its UTC offset, from get_start_time().
+
+   .. py:attribute:: local
+      :type: datetime
+
+   .. py:attribute:: utc_offset_hours
+      :type: int
 
 .. py:class:: GeoOrigin
 
