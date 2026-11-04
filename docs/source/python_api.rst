@@ -778,11 +778,17 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    Update sensor parameters. Only the given (non-None) fields are applied.
 
-   Only before start() (config window).
+   Before start() (config window), any of them. In flight, only the attributes the
+   sensor takes there: a camera's or depth camera's ``field_of_view``, a zoom. The
+   frames rendered from then on carry the new focal length (RawFrame.fx)::
+
+       sim.start()
+       drone.set_sensor_param("camera", field_of_view=20)   # zoom in
+
    Session-only, like every sensor change made through the API: the vehicle's
    Sensors.xml is authored in the build panel or by hand and never written here,
    so the next spawn of the vehicle starts from the file again. Stop/Start keeps
-   the change.
+   the change, a zoom made in flight too.
 
    Any further keyword is one of the sensor type's own attributes, named as
    Sensors.xml names them -- the keys list_sensors() reports in ``fields``.
@@ -804,7 +810,8 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
                       skips the field, like the explicit keywords.
 
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started,
+       FAILED_PRECONDITION if the sim has already started and the request
+       writes anything the sensor does not take in flight (the refusal names it),
        INVALID_ARGUMENT if update_hz is not a finite rate above 0, a field is not one of the
        type's attributes, its value is not one the attribute takes (a
        whole number for an integer attribute), or the sensor cannot run
