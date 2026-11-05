@@ -211,15 +211,17 @@ One wind for the whole world: the clouds, rain and trees move with it and every 
    - ``"none"``: no turbulence.
    - ``"culp"``: ``gain`` in (0, 1] and ``rate_hz`` in (0, 30].
    - ``"milspec"``, ``"tustin"``: Dryden spectrum per MIL-F-8785C; ``severity``
-     1..7 (3 light, 4 moderate, 6 severe). The steady wind is their 20 ft wind:
-     below 1000 ft above sea level (JSBSim reads altitude ASL, not AGL) their
-     intensity is a tenth of it, above 2000 ft ASL it comes from the severity
-     curve alone.
+     1..7 (3 light, 4 moderate, 6 severe). The steady wind is their 20 ft wind.
+     The height above the ground picks the model and its low-altitude scales:
+     below 1000 ft the vertical intensity is a tenth of that wind and the
+     horizontal about 0.2 of it at 10 ft, 0.17 at 100 ft and 0.1 at 1000 ft;
+     between 1000 and 2000 ft they blend into the severity curve, read at the
+     altitude above sea level, which alone holds above. The height follows the
+     ground at 50 ft/s at most, between 10 and 2000 ft; a start or reset takes
+     it at once.
 
-   Milspec and Tustin share JSBSim's turbulence filter state, which only a stop
-   clears: from start to stop a run keeps the first of the two it flies (the one
-   set before start counts). Switching to the other while running or paused is
-   refused; "none", "culp" and a new severity for the same form are not.
+   Taken at the next physics step. A step-mode session keeps the turbulence it
+   entered with, for its episodes too: a change takes effect once it is closed.
 
    :param model: "none", "culp", "milspec" or "tustin".
    :param gain: Culp gain.
@@ -228,8 +230,7 @@ One wind for the whole world: the clouds, rain and trees move with it and every 
 
    :raises ValueError: If model is not one of the four names.
    :raises grpc.RpcError: PERMISSION_DENIED without an Edu or Pro license,
-       INVALID_ARGUMENT for a value out of range or one the model does not read,
-       FAILED_PRECONDITION for the other of Milspec and Tustin mid-run.
+       INVALID_ARGUMENT for a value out of range or one the model does not read.
 
 Weather and time
 ^^^^^^^^^^^^^^^^
