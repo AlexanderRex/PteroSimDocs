@@ -58,9 +58,10 @@ depends on whether anyone can click a dialog.
 Interactive run (normal window)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A windowed launch shows the EULA dialog once. Clicking **Accept** writes a flag
-file (``eula.accepted``) into the save directory (``PteroLabs/``). Every later
-launch — including headless ones — sees that file and skips the prompt.
+A windowed launch shows the EULA dialog until you accept it. Clicking **Accept**
+records, in the save directory (``PteroLabs/``), that you accepted this version
+of the Agreement. Every later launch — including headless ones — skips the
+prompt until an update changes the Agreement; then the dialog appears once more.
 
 Headless / non-interactive run
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -84,9 +85,10 @@ Agreement**. Both are checked on every launch, before any dialog is created.
 
 .. note::
 
-   The ``eula.accepted`` file is only ever written by clicking **Accept** in the
-   GUI. A machine that has *never* had a windowed launch (a clean Docker image,
-   a display-less CI runner) has no such file — always pass
+   Only clicking **Accept** in the GUI records an acceptance, and it covers one
+   version of the Agreement. A machine that has *never* had a windowed launch (a
+   clean Docker image, a display-less CI runner), or accepted only an older
+   Agreement before an update, has none for the current one — always pass
    ``PTEROSIM_ACCEPT_EULA=Y`` or ``-AcceptEula`` there.
 
 Examples
