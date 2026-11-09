@@ -232,6 +232,18 @@ One wind for the whole world: the clouds, rain and trees move with it and every 
    :raises grpc.RpcError: PERMISSION_DENIED without an Edu or Pro license,
        INVALID_ARGUMENT for a value out of range or one the model does not read.
 
+.. py:method:: PteroSim.get_turbulence()
+
+   Get the turbulence set_turbulence() last applied.
+
+   :returns:
+
+             - **model** (str): "none", "culp", "milspec" or "tustin".
+             - **gain** (float): Culp gain; 0 for the other models.
+             - **rate_hz** (float): Culp rate in Hz; 0 for the other models.
+             - **severity** (int): Milspec/Tustin severity, 1..7; 0 for the other models.
+   :rtype: TurbulenceState
+
 Weather and time
 ^^^^^^^^^^^^^^^^
 
@@ -1337,6 +1349,22 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: from_deg
       :type: float
+
+.. py:class:: TurbulenceState
+
+   The turbulence, from get_turbulence(); a model's unread inputs are 0.
+
+   .. py:attribute:: model
+      :type: str
+
+   .. py:attribute:: gain
+      :type: float
+
+   .. py:attribute:: rate_hz
+      :type: float
+
+   .. py:attribute:: severity
+      :type: int
 
 .. py:class:: WeatherState
 
