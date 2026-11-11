@@ -876,7 +876,7 @@ Actuator control
 
 .. py:method:: Aircraft.set_attitude(roll_rad=0.0, pitch_rad=0.0, yaw_rate_rad_sec=0.0, throttle=0.0, enabled=True)
 
-   Send attitude command to the QuadX attitude controller running in C++ at physics rate.
+   Send an attitude command to the attitude controller running in C++ at physics rate, on the vehicle's own mixer.
 
    When enabled, this controller overrides motor throttles from set_controls().
 
@@ -885,6 +885,9 @@ Actuator control
    :param yaw_rate_rad_sec: Desired yaw rate in radians per second.
    :param throttle: Base thrust in range [0, 1].
    :param enabled: Enable or disable the attitude controller.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION, with the reason, when enabled on a vehicle with no attitude controller yet
+       that is not running (before start(), or once it crashed) or whose model has no multicopter mixer.
 
 Flight model
 ^^^^^^^^^^^^
@@ -1016,6 +1019,9 @@ Navigation
    :param yaw: Desired yaw in degrees (default 0.0).
    :param acceptance_radius_cm: Arrival radius in cm (0 = controller default).
 
+   :raises grpc.RpcError: FAILED_PRECONDITION, with the reason, when the vehicle is not running (before start(), or once
+       it crashed), or when its model has no multicopter mixer.
+
 .. py:method:: Aircraft.land(yaw_deg=0.0, *, acceptance_radius_cm=0.0)
 
    Descend at current XY using live AGL, then cut motors near ground.
@@ -1028,6 +1034,9 @@ Navigation
 
       Returns immediately; landing completes asynchronously.
       No completion notification is provided.
+
+   :raises grpc.RpcError: FAILED_PRECONDITION, with the reason, when the vehicle is not running (before start(), or once
+       it crashed), or when its model has no multicopter mixer.
 
 .. py:method:: Aircraft.cancel_go_to()
 
