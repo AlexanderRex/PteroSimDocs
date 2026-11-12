@@ -126,6 +126,7 @@ Simulation status
                still being made, as after the spawn of a new or edited vehicle; the simulator
                refuses to start while any it would start are, and start() waits until none are
                listed. One it would refuse anyway, with no ground under it say, is listed too.
+             - **level** (str): The open level's path, as levels() lists it.
    :rtype: SimStatus
 
 .. py:method:: PteroSim.clock()
@@ -342,6 +343,50 @@ The WGS84 point the scene's (0, 0, 0) stands on. It moves while the simulation i
              - **lon** (float): Longitude in degrees.
              - **alt** (float): Altitude in meters (WGS84) of the scene's Z = 0.
    :rtype: GeoOrigin
+
+Levels and 3D tiles
+^^^^^^^^^^^^^^^^^^^
+
+The maps the Level menu offers, opened while the simulation is stopped, and the Cesium ion token their 3D tiles stream with.
+
+.. py:method:: PteroSim.levels()
+
+   Returns the levels open_level() opens, as the Level menu offers them: each one's path and its menu name.
+
+.. py:method:: PteroSim.open_level(path, *, timeout=60.0)
+
+   Open a level, as Load in the Level menu does, and wait until it is open.
+
+   The world reloads: every aircraft and prop in it goes, and the Aircraft and Prop
+   handles from it are gone with them. The level already open stays as it is. A level
+   with 3D tiles streams them once it is open, with the Cesium ion token set_ion_token()
+   or Scene Settings gave::
+
+       sim.open_level("/Game/PteroSim/Maps/Globe")
+
+   :param path: A path levels() lists.
+   :param timeout: Seconds to wait for the level to open; None waits as long as it takes.
+
+   :raises grpc.RpcError: INVALID_ARGUMENT for a path levels() does not list, naming those
+       it does; FAILED_PRECONDITION unless the simulation is stopped.
+   :raises TimeoutError: the level is not open after timeout seconds; it names the level.
+   :raises ValueError: a timeout not over 0 seconds, before the level is ordered.
+
+.. py:method:: PteroSim.set_ion_token(token)
+
+   Give the Cesium ion token the 3D tiles stream with, for this session only.
+
+   As the token field in Scene Settings, but never saved: the simulator uses it over
+   the saved one until it exits, the open level's tiles reload with it at once, and
+   every level opened later streams with it. Get one at cesium.com/ion/tokens::
+
+       sim.set_ion_token(os.environ["CESIUM_ION_TOKEN"])
+
+   :param token: The Cesium ion access token.
+
+   :raises grpc.RpcError: INVALID_ARGUMENT for an empty token; FAILED_PRECONDITION while
+       aircraft stand on the open level's 3D tiles, which then stay as they are;
+       the token is still this session's, for the levels opened later.
 
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
@@ -712,7 +757,7 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    The frame is the camera's image_width x image_height; set_sensor_param() sets them before start().
 
    :param sensor_name: Name of the camera sensor component (default "Camera").
-   :param timeout: gRPC timeout in seconds (default 10.0).
+   :param timeout: gRPC timeout in seconds.
 
    :returns:
 
@@ -734,7 +779,8 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    Read-only — allowed at any time, before or after start().
 
    :returns: List of SensorInfo (name, type, enabled, update_hz, position, orientation,
-             fields -- the type's own attributes as text, keyed as set_sensor_param() takes them).
+             fields -- the type's own attributes as text, keyed as set_sensor_param() takes them --
+             and parent, the gimbal it rides).
 
 .. py:method:: Aircraft.add_sensor(sensor_type, name="")
 
@@ -787,7 +833,7 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
        FAILED_PRECONDITION if the sim has already started.
 
-.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None, **fields)
+.. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None, parent=None, **fields)
 
    Update sensor parameters. Only the given (non-None) fields are applied.
 
@@ -801,7 +847,10 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
    Session-only, like every sensor change made through the API: the vehicle's
    Sensors.xml is authored in the build panel or by hand and never written here,
    so the next spawn of the vehicle starts from the file again. Stop/Start keeps
-   the change, a zoom made in flight too.
+   the change, a zoom made in flight too. One exception, as for set_sensor_pose():
+   the build panel saves every listed sensor's parent from the component, so a
+   parent set here on a sensor the file names is written with the next edit made
+   in the panel.
 
    Any further keyword is one of the sensor type's own attributes, named as
    Sensors.xml names them -- the keys list_sensors() reports in ``fields``.
@@ -814,11 +863,20 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    Every streamed frame carries its capture time in an H.264 SEI (UUID ``PteroSimFrame v1``).
 
+   A camera or depth camera rides a gimbal's head with ``parent``, so set_gimbal()
+   aims it; the frames' ``camera_rotation_frd`` turns with the head::
+
+       depth = drone.add_sensor("depthcamera")
+       drone.set_sensor_param(depth, parent="gimbal_1")   # a name from list_gimbals()
+       sim.start()
+
    :param name: Sensor name.
    :param enabled: Enable/disable the sensor.
    :param update_hz: Update rate in Hz (must be > 0).
    :param noise: Enable/disable sensor noise.
    :param logging: Enable/disable per-sensor logging.
+   :param parent: The gimbal whose head a render sensor rides, by its name in
+                  list_gimbals(); ``""`` puts it back on the airframe. Only before start().
    :param \*\*fields: The type's own attributes; bools, numbers and strings. None
                       skips the field, like the explicit keywords.
 
@@ -829,7 +887,9 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
        type's attributes, its value is not one the attribute takes (a
        whole number for an integer attribute), or the sensor cannot run
        with the values together (a camera's size or FOV out of range, or
-       with stream on its host, port or bitrate).
+       with stream on its host, port or bitrate), or parent is not "" and
+       names no gimbal the aircraft carries, by its exact name, or the sensor
+       is not a camera or depth camera.
 
 Raw sensor streams
 ^^^^^^^^^^^^^^^^^^
@@ -1327,6 +1387,9 @@ Values returned by the methods above. You do not construct these.
    .. py:attribute:: preparing_aircraft
       :type: list[str]
 
+   .. py:attribute:: level
+      :type: str
+
 .. py:class:: ClockInfo
 
    Simulation clock from clock().
@@ -1407,6 +1470,16 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: alt
       :type: float
+
+.. py:class:: Level
+
+   A level the Level menu offers, from levels().
+
+   .. py:attribute:: path
+      :type: str
+
+   .. py:attribute:: name
+      :type: str
 
 .. py:class:: AircraftClass
 
@@ -1644,6 +1717,10 @@ Values returned by the methods above. You do not construct these.
 
    .. py:attribute:: fields
       :type: dict[str, str]
+
+   .. py:attribute:: parent
+      :type: str
+      :value: ''
 
 .. py:class:: CameraFrame
 
