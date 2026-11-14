@@ -46,7 +46,7 @@ Classes
                r = mode.step(a, steps=10, reset=r.crashed)
            mode.reset(mask=r.crashed)  # step mode is not left with an environment crashed
 
-.. py:class:: RawStream
+.. py:class:: RawStream(host, port, timeout=None, shared_memory=False)
 
    A connection to one render sensor's raw_stream.
 
@@ -54,6 +54,17 @@ Classes
 
        with RawStream("127.0.0.1", 5710) as stream:
            frame = stream.read()
+
+   With ``shared_memory=True`` the frames' texels come through a ring of shared memory the simulator writes, and only
+   their headers over the socket: on 1080p BGRA that saves the 8 MB a frame TCP would carry. Only a client on the
+   simulator's machine gets it; read() raises ConnectionRefusedError, closing the stream, never falling back to TCP,
+   when the simulator refuses it, saying why, when it is older than shared memory, when this client cannot see the
+   simulator's shared memory (another machine, Windows session, WSL distribution or container), or when a frame
+   outgrew the ring (a camera resized): ask again.
+   A frame the simulator wrote over before this client copied it (the ring holds four) is skipped and counted in
+   ``dropped``.
+
+   Connect to host:port; timeout (seconds) bounds the connect and every read, None waits forever.
 
 Connection
 ^^^^^^^^^^
@@ -886,8 +897,9 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
        INVALID_ARGUMENT if update_hz is not a finite rate above 0, a field is not one of the
        type's attributes, its value is not one the attribute takes (a
        whole number for an integer attribute), or the sensor cannot run
-       with the values together (a camera's size or FOV out of range, or
-       with stream on its host, port or bitrate), or parent is not "" and
+       with the values together, update_hz among them (a camera's size or FOV
+       out of range, its shutter_s longer than a frame at update_hz, or with
+       stream on its host, port or bitrate), or parent is not "" and
        names no gimbal the aircraft carries, by its exact name, or the sensor
        is not a camera or depth camera.
 
@@ -900,9 +912,19 @@ A render sensor with ``raw_stream`` on serves lossless frames over TCP on ``raw_
 
    The next frame the sensor rendered; blocks until it arrives.
 
-   :raises ConnectionError: The simulator closed the stream.
+   An error, an interrupt too, closes the stream, but for a TimeoutError before a frame's first byte: after that one
+   read() may be called again.
+
+   :raises ConnectionError: The simulator closed the stream, or it was closed before this read().
+   :raises ConnectionRefusedError: Shared memory asked for and not to be had, or its ring ended; the message says why.
    :raises TimeoutError: Nothing arrived within the timeout given at connect.
    :raises ValueError: The bytes are not a PTF1 frame this SDK reads.
+
+.. py:property:: RawStream.dropped
+
+   Frames the simulator wrote over in its shared-memory ring before this client copied them.
+
+   :type: int
 
 .. py:method:: RawStream.close()
 
