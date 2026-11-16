@@ -71,10 +71,10 @@ every additional tank has the same fields.
 
    JSBSim searches priorities only up to the total number of tanks on the
    vehicle. With ``N`` tanks, only priorities ``1`` through ``N`` can be
-   reached; a larger value is accepted by the panel but that tank is never
-   drained. ``0`` omits the priority from the file, so JSBSim assigns its
-   default of ``1``. It therefore has the same feeding behaviour as entering
-   ``1`` explicitly.
+   reached. Priority ``0`` disables feeding from that tank. A priority greater
+   than ``N`` is never reached, so Apply refuses it and reports the tank to
+   correct. When ``<priority>`` is absent, JSBSim uses its default of ``1``;
+   entering ``1`` explicitly has the same feeding behaviour.
 
    A tank must also be selected under the engine's **Feeds from tank** field
    before that engine can use it.
