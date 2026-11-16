@@ -84,5 +84,30 @@ Open a tiled world
    included in your build. **Airbase** is the built-in local level and does not require Cesium ion.
 4. Confirm **Load**. Loading another level reloads the world, removes any
    aircraft in the current one, and starts streaming the selected world's tiles.
-5. Wait for the **3D tiles loaded** notification before placing an aircraft or
-   moving the geographic origin.
+5. Wait for the **3D tiles loaded** notification before changing location or
+   placing an aircraft.
+
+Change location on a tiled world
+--------------------------------
+
+The **Geo Reference (origin)** coordinates in **Scene Manager** set the
+location shown at the centre of the scene. To move to another place on Earth:
+
+1. Stop the simulation if it is running. Remove any aircraft already in the
+   scene; an occupied tiled world cannot move its origin.
+2. In the **Scene** panel on the right, select **Scene Manager**. Its settings
+   open below the scene list.
+3. Under **Geo Reference (origin)**, enter the new **Latitude** and
+   **Longitude** in decimal degrees. For example, Sydney is approximately
+   latitude ``-33.9321`` and longitude ``151.1723``.
+4. Select **Apply Origin** below the coordinate fields. PteroSim measures the
+   ground at the new point, then moves the view there and streams its tiles.
+   Wait for the loading notification to close before placing an aircraft.
+
+On a 3D-tile world, **Altitude (m)** is set from the measured terrain and
+cannot be edited in this panel. The coordinate fields and **Apply Origin** are
+available only while the simulation is stopped.
+
+To place an aircraft at the new location, follow :doc:`First Steps
+<first_steps>`. The **Spawn** panel lists the aircraft available in your
+installation.
