@@ -1,12 +1,31 @@
 SITL simulation with ArduPilot
 ==============================
 
+The ``sim_vehicle.py`` commands below run in Ubuntu under WSL. They call
+``sim_vehicle.py`` by name, which works once ArduPilot's
+``Tools/autotest`` folder is on the PATH; ArduPilot's Ubuntu setup script,
+``Tools/environment_install/install-prereqs-ubuntu.sh``, offers to add it.
+
+SITL reaches PteroSim at the Windows address as WSL sees it. Set it in every
+WSL terminal you start SITL from:
+
+.. code-block:: bash
+
+   # WSL with networkingMode=mirrored in .wslconfig
+   WIN_HOST=127.0.0.1
+
+   # WSL with the default NAT networking
+   WIN_HOST=$(ip route | awk '/default/ {print $3; exit}')
+
+With mirrored networking, also add ``--no-wsl2-network`` to each
+``sim_vehicle.py`` command. Without it, MAVProxy sends its UDP output for
+ground stations to your router instead of to Windows.
+
 Single-instance launch
 ----------------------
 
-1. **Start PteroSim**, spawn the F450 drone while the simulation is stopped,
-   then press **Start** on the simulation panel. For ArduPilot, set Physics Hz
-   to **1000** with the top slider.
+1. **Start PteroSim** and spawn the F450 drone while the simulation is
+   stopped.
 
 2. In the control source panel choose **ArduPilot**:
 
@@ -14,34 +33,37 @@ Single-instance launch
       :alt: Control Source panel with ArduPilot selected
       :class: no-float-left
 
-3. In Ubuntu/WSL, run ArduPilot SITL from the ArduPilot checkout. The JSON
-   host is the Windows address as seen from WSL:
+3. Set Physics Hz to **1000** with the top slider, then press **Start** on
+   the simulation panel.
+
+4. Start ArduPilot SITL from the F450's folder. ``<release>`` is the release
+   directory's path in WSL, such as ``/mnt/c/...`` for a folder on drive C:
 
    .. code-block:: bash
 
-      WIN_HOST=$(ip route | awk '/default/ {print $3; exit}')
-      python3 Tools/autotest/sim_vehicle.py -v ArduCopter -f quad \
-        --model "JSON:$WIN_HOST" --no-rebuild -w -P FRAME_TYPE=1
+      cd <release>/PteroSim/PteroSimAircrafts/F450
+      sim_vehicle.py -v ArduCopter -f quad --model "JSON:$WIN_HOST" \
+        --add-param-file="$(pwd)/firmwares/ardupilot_F450.param" --no-rebuild -w
 
-   This is an **F450 quad example**. Other vehicles need the appropriate
-   vehicle type, frame, and parameters. If WSL is configured to forward
-   Windows localhost, ``127.0.0.1`` may also work as the JSON host.
+   For another vehicle, use its folder, its ``firmwares/ardupilot_<Name>.param``
+   and the matching ``-v`` and ``-f``. ``--no-rebuild`` uses the SITL binary
+   you have already built; leave it out the first time.
 
-4. Launch **Mission Planner** and open the **Plan** tab in the top left of
+5. Launch **Mission Planner** and open the **Plan** tab in the top left of
    the screen:
 
    .. image:: Images/ardupilot_plan_top_tabs.png
       :alt: Mission Planner top tabs with Plan selected
       :align: left
 
-5. Build a mission either from the bottom waypoint table or by right-clicking
+6. Build a mission either from the bottom waypoint table or by right-clicking
    on the map. Click **Write** on the panel on the right to upload it:
 
    .. image:: Images/ardupilot_plan_map_context_menu.png
       :alt: Mission Planner map right-click mission menu
       :align: left
 
-6. Go to the **Data** tab. Open **Actions** and click **Arm/Disarm**. Select
+7. Go to the **Data** tab. Open **Actions** and click **Arm/Disarm**. Select
    **mission_start** and click **Do Action**.
 
    .. image:: Images/ardupilot_plan_write_panel.png
@@ -51,19 +73,22 @@ Single-instance launch
 Multi-instance launch
 ---------------------
 
-Run one ArduPilot SITL instance for each aircraft in PteroSim. Spawn all
-aircraft while the simulation is stopped, set each flight stack to
-**ArduPilot**, set Physics Hz to **1000**, then start the simulation. The SITL
-instance number ``-I N`` must match the aircraft's ``instance_id``.
+Each aircraft gets its own SITL. Spawn all aircraft while the simulation is
+stopped, set each one's flight stack to **ArduPilot**, set Physics Hz to
+**1000**, then press **Start**. In a scene with no other aircraft, the first
+one you spawn is instance 0, the next one instance 1, and so on.
+
+``-I N`` connects a SITL to the aircraft with instance ID ``N`` by adding
+``10*N`` to every SITL port:
 
 .. list-table:: Ports for the first two aircraft
    :header-rows: 1
 
    * - Instance ID
-     - JSON simulator UDP on Windows
-     - MAVProxy TCP in WSL
-     - Free TCP for another MAVLink client
-     - MAVProxy UDP output
+     - Simulator JSON, UDP
+     - MAVProxy, TCP
+     - Other MAVLink clients, TCP
+     - MAVProxy output, UDP
    * - 0
      - 9002
      - 5760
@@ -75,93 +100,72 @@ instance number ``-I N`` must match the aircraft's ``instance_id``.
      - 5772
      - 14560
 
-For later instances, the JSON port is ``9002 + 10*N`` and ArduPilot's TCP
-ports advance by ten per instance. The JSON links carry simulator data;
-ground stations and control scripts use the separate MAVLink ports. Give
-each SITL a distinct MAVLink system ID: ``-I`` alone does not change it.
+``-I`` does not change the MAVLink system ID: every SITL starts as system 1.
+``--auto-sysid`` gives instance ``N`` the system ID ``N + 1``, so ground
+stations see the aircraft as separate vehicles.
 
-The commands below start in the PteroSim project root mounted in WSL.
-Starting ``wsl`` from a Windows shell in that root opens its ``/mnt/c``
-directory; use ``pwd`` to confirm. They use the WSL default gateway as the
-Windows host address. In the live check it was ``172.26.48.1``. The tested
-ArduPilot checkout was ``~/Documents/ardupilot`` at ``6dd6c4e1`` and
-MAVProxy was in ``~/.local/bin``; adjust the checkout path if yours differs.
-Build the needed SITL binaries before using ``-N`` below. ``-S 2`` sets SITL
-speed to 2x; set PteroSim time scale to **2** as well. For normal speed,
-remove ``-S 2`` and use PteroSim time scale 1.
+Start each command in its aircraft's folder. SITL keeps its parameters in
+``eeprom.bin`` in the current directory, and two instances started in one
+directory would share that file. To run faster than real time, add ``-S N``
+to every command and set the same time scale in PteroSim.
 
-Two identical x500 quadcopters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Several aircraft of one type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Spawn two x500 aircraft with IDs 0 and 1. Run one command from the x500
-aircraft directory:
+One command starts them all. Spawn two x500, then run:
 
 .. code-block:: bash
 
-   cd PteroSimAircrafts/x500
-   export PATH="$HOME/.local/bin:$PATH"
-   WIN_HOST=$(ip route | awk '/default/ {print $3; exit}')
-   python3 ~/Documents/ardupilot/Tools/autotest/sim_vehicle.py \
-     -v ArduCopter -f quad --model "JSON:$WIN_HOST" \
+   cd <release>/PteroSim/PteroSimAircrafts/x500
+   sim_vehicle.py -v ArduCopter -f quad --model "JSON:$WIN_HOST" \
      -n 2 --auto-sysid \
-     --add-param-file="$(pwd)/firmwares/ardupilot_x500.param" \
-     -N -S 2
+     --add-param-file="$(pwd)/firmwares/ardupilot_x500.param" --no-rebuild
 
-This starts instances 0 and 1 with system IDs 1 and 2. ``sim_vehicle.py``
-creates separate ``0/`` and ``1/`` subdirectories containing their EEPROM,
-logs, and terrain; one MAVProxy serves both aircraft. Use the absolute WSL
-parameter path shown above. In the tested ``sim_vehicle.py``, a relative
-``firmwares/ardupilot_x500.param`` was not resolved from the child
-directories and both SITL processes exited.
+This starts instances 0 and 1 with system IDs 1 and 2, in subfolders ``0/``
+and ``1/``. One MAVProxy serves both.
 
-Two different aircraft (x500 and standard_vtol)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Aircraft of different types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Spawn x500 as instance 0 and standard_vtol as instance 1. Use two WSL
-terminals, each starting in the PteroSim project root. Launch order does
-not matter.
+A ``sim_vehicle.py`` command runs one ArduPilot binary with one parameter file
+for all its instances. Aircraft of different types, or with different
+parameter files, each need their own command in their own terminal. Spawn an
+x500 as instance 0 and a standard_vtol as instance 1, then run:
 
 x500, instance 0:
 
 .. code-block:: bash
 
-   cd PteroSimAircrafts/x500
-   export PATH="$HOME/.local/bin:$PATH"
-   WIN_HOST=$(ip route | awk '/default/ {print $3; exit}')
-   python3 ~/Documents/ardupilot/Tools/autotest/sim_vehicle.py \
-     -v ArduCopter -f quad --model "JSON:$WIN_HOST" \
-     -I0 --sysid 1 --add-param-file="$(pwd)/firmwares/ardupilot_x500.param" \
-     -N -S 2
+   cd <release>/PteroSim/PteroSimAircrafts/x500
+   sim_vehicle.py -v ArduCopter -f quad --model "JSON:$WIN_HOST" \
+     -I0 --auto-sysid \
+     --add-param-file="$(pwd)/firmwares/ardupilot_x500.param" --no-rebuild
 
 standard_vtol, instance 1:
 
 .. code-block:: bash
 
-   cd PteroSimAircrafts/standard_vtol
-   export PATH="$HOME/.local/bin:$PATH"
-   WIN_HOST=$(ip route | awk '/default/ {print $3; exit}')
-   python3 ~/Documents/ardupilot/Tools/autotest/sim_vehicle.py \
-     -v ArduPlane --model "JSON:$WIN_HOST" \
-     -I1 --sysid 2 \
-     --add-param-file="$(pwd)/firmwares/ardupilot_standard_vtol.param" \
-     -N -S 2
+   cd <release>/PteroSim/PteroSimAircrafts/standard_vtol
+   sim_vehicle.py -v ArduPlane --model "JSON:$WIN_HOST" \
+     -I1 --auto-sysid \
+     --add-param-file="$(pwd)/firmwares/ardupilot_standard_vtol.param" --no-rebuild
 
-Separate aircraft directories prevent the two single-instance launches
-from sharing one ``eeprom.bin``. Each SITL has its own MAVProxy.
+The two commands can start in either order. Each one runs its own MAVProxy.
 
-Check both connections
-~~~~~~~~~~~~~~~~~~~~~~
+Before arming
+~~~~~~~~~~~~~
 
-Check that the PteroSim Output Log shows listeners on UDP 9002 and 9012,
-that MAVLink reports system IDs 1 and 2, and that each SITL reports
-``EKF3 IMU0 is using GPS`` before arming. Use a normal arm command; force
-arming was not needed in the live check. The local SITL printed
-``Arming checks disabled``, so that result did not verify active prearm
-checks. Both x500 + x500 and x500 + standard_vtol connected and accepted
-normal arm commands at Physics Hz 1000 and time scale 2. The mixed pair
-also worked when instance 1 started before instance 0.
+Check that:
 
-If an instance does not connect, verify its ``-I`` number, system ID,
-flight stack, JSON host address, and Windows firewall. Under tmux, Ctrl+C
-or ``tmux kill-session`` may leave SITL or MAVProxy processes running;
-check and close them before restarting.
+- the PteroSim Output Log shows ``ArduPilot UDP transport listening on`` for
+  ports 9002 and 9012;
+- MAVProxy prints ``Detected vehicle 1:1`` and ``Detected vehicle 2:1``;
+- each SITL prints ``EKF3 IMU0 is using GPS``.
+
+A normal arm command then works.
+
+If an aircraft does not connect, check its ``-I`` number, its flight stack,
+``WIN_HOST`` and the Windows firewall. A SITL still running from an earlier
+launch keeps sending to its port and takes over the next aircraft with that
+instance ID, so close any leftover ``arducopter``, ``arduplane`` and
+``mavproxy.py`` processes before you start again.
