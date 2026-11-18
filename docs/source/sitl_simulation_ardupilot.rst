@@ -1,8 +1,8 @@
 SITL simulation with ArduPilot
 ==============================
 
-Getting Started
----------------
+Single-instance launch
+----------------------
 
 1. **Start PteroSim**, spawn the F450 drone while the simulation is stopped,
    then press **Start** on the simulation panel. For ArduPilot, set Physics Hz
@@ -48,8 +48,8 @@ Getting Started
       :alt: Mission Planner write panel
       :align: left
 
-Multilaunch
------------
+Multi-instance launch
+---------------------
 
 Run one ArduPilot SITL instance for each aircraft in PteroSim. Spawn all
 aircraft while the simulation is stopped, set each flight stack to

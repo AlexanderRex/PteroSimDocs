@@ -36,7 +36,7 @@ SITL Simulation
 ---------------
 
 :doc:`sitl_simulation_px4` — PX4 SITL workflow with QGroundControl.
-:doc:`sitl_simulation_ardupilot` — ArduPilot SITL workflow with Mission Planner.
+:doc:`sitl_simulation_ardupilot` — ArduPilot SITL single-instance and multi-instance launches.
 
 Python API
 ----------
