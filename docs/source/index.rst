@@ -20,7 +20,7 @@ Getting Started
 First Steps
 -----------
 
-:doc:`first_steps` — Basic spawning workflow for aircraft and payloads.
+:doc:`first_steps` — Spawn an aircraft and learn the keyboard and mouse shortcuts.
 
 Build Your Own Vehicle
 ----------------------
