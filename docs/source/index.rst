@@ -37,6 +37,7 @@ SITL Simulation
 
 :doc:`sitl_simulation_px4` — PX4 SITL workflow with QGroundControl.
 :doc:`sitl_simulation_ardupilot` — ArduPilot SITL workflow with Mission Planner.
+:doc:`multiple_sitl_instances` — Run multiple PX4 or ArduPilot SITL instances with matching aircraft.
 
 Python API
 ----------
@@ -59,5 +60,6 @@ Headless & Automation
    cesium_ion
    sitl_simulation_px4
    sitl_simulation_ardupilot
+   multiple_sitl_instances
    python_api
    headless
