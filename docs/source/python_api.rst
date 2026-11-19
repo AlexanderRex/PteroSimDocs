@@ -358,7 +358,7 @@ The WGS84 point the scene's (0, 0, 0) stands on. It moves while the simulation i
 Levels and 3D tiles
 ^^^^^^^^^^^^^^^^^^^
 
-The maps the Level menu offers, opened while the simulation is stopped, and the Cesium ion token their 3D tiles stream with.
+The maps the Level menu offers, opened while the simulation is stopped, and the Cesium ion token and assets their 3D tiles stream with.
 
 .. py:method:: PteroSim.levels()
 
@@ -398,6 +398,43 @@ The maps the Level menu offers, opened while the simulation is stopped, and the 
    :raises grpc.RpcError: INVALID_ARGUMENT for an empty token; FAILED_PRECONDITION while
        aircraft stand on the open level's 3D tiles, which then stay as they are;
        the token is still this session's, for the levels opened later.
+
+.. py:method:: PteroSim.set_ion_assets(asset_ids)
+
+   Give the Cesium ion assets the open level's planet streams, for this session only.
+
+   As the Cesium ion asset rows in Scene Settings, but never saved: the simulator
+   streams this list over the saved one until it exits or a list is entered in the
+   rows, the open level's tiles start again with it at once, and every level of the
+   same planet opened later streams it; with no Cesium ion token it waits for one. In
+   order: each 3D Tiles or terrain asset is a tileset of its own, and imagery lies on
+   the first of them, the first listed lowest. An empty list streams the saved one again::
+
+       sim.set_ion_assets([1, 2])  # Cesium World Terrain, Bing Maps Aerial on it
+       sim.set_ion_assets([])      # back to the rows in Scene Settings
+
+   :param asset_ids: Asset ids from your Cesium ion account; empty for the saved list.
+
+   :raises TypeError: If asset_ids is not a sequence of integers; protobuf refuses it before the call.
+   :raises ValueError: If an id is outside int64; protobuf refuses it before the call.
+   :raises grpc.RpcError: INVALID_ARGUMENT for an id not above 0 or one listed twice;
+       FAILED_PRECONDITION while aircraft stand on the open level's 3D tiles, a
+       spawn waits for their ground or their ground is being measured, which then
+       stay as they are; the list is still this session's, for the levels opened later.
+
+.. py:method:: PteroSim.get_ion_assets()
+
+   Get the Cesium ion assets the open level's planet streams.
+
+   The list set_ion_assets() gave for this session, else the one saved in Scene
+   Settings::
+
+       sim.set_ion_assets([1, 2])
+       sim.get_ion_assets()  # [1, 2]
+
+   :returns: each 3D Tiles or terrain asset is a tileset of its own,
+             and imagery lies on the first of them.
+   :rtype: Asset ids in order
 
 Aircraft management
 ^^^^^^^^^^^^^^^^^^^
