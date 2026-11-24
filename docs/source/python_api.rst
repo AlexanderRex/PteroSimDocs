@@ -478,7 +478,8 @@ Aircraft management
    :raises ValueError: a position that is not one full set, lat/lon/alt or x/y/z, alone.
    :raises grpc.RpcError: FAILED_PRECONDITION ("Could not spawn <aircraft>: <reason>")
        when the spawn is refused, e.g. the ground under the point did not load;
-       INVALID_ARGUMENT for an airspeed without in_air, or one that is not a finite 0 or more.
+       INVALID_ARGUMENT for an airspeed without in_air, or one that is not a finite 0 or more,
+       or a lat/lon/alt that is not finite or off the globe (lat -90 to 90, lon -180 to 180).
 
 .. py:method:: PteroSim.get_aircraft(instance_id)
 
@@ -580,7 +581,8 @@ Aircraft management
    :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused, or ("Could
        not set the pose: <reason>") when the ground under the point did not load; NOT_FOUND
        when the aircraft is gone; INVALID_ARGUMENT for an airspeed without in_air, or one
-       that is not a finite 0 or more; DEADLINE_EXCEEDED when the timeout runs out.
+       that is not a finite 0 or more, or a lat/lon/alt that is not finite or off the globe
+       (lat -90 to 90, lon -180 to 180); DEADLINE_EXCEEDED when the timeout runs out.
 
 .. py:method:: Aircraft.set_flight_stack(stack)
 
@@ -645,7 +647,8 @@ A prop is a .glb from the simulator's machine placed in the scene. Props are spa
    :raises grpc.RpcError: INVALID_ARGUMENT for no file at mesh_path, a mass or a scale that is not
        finite and over 0, a friction under 0 or not finite, a restitution outside 0 to 1, a
        density that is not finite and over 0, a mass or a density for a prop that does not
-       fall, a density with a mass, or a friction or a restitution for a prop only shown;
+       fall, a density with a mass, a friction or a restitution for a prop only shown, or a
+       lat/lon/alt that is not finite or off the globe (lat -90 to 90, lon -180 to 180);
        FAILED_PRECONDITION while
        the simulation runs or is paused, or ("Could not spawn <path>: <reason>") when the
        file is no .glb, the ground under the point did not load, or the scale or the density
@@ -683,7 +686,8 @@ A prop is a .glb from the simulator's machine placed in the scene. Props are spa
    :raises ValueError: a timeout not over 0, or a position that is not one full set alone.
    :raises grpc.RpcError: FAILED_PRECONDITION while the simulation runs or is paused, or ("Could
        not set the pose: <reason>") when the ground under the point did not load; NOT_FOUND
-       when the prop is gone; DEADLINE_EXCEEDED when the timeout runs out.
+       when the prop is gone; INVALID_ARGUMENT for a lat/lon/alt that is not finite or off the
+       globe (lat -90 to 90, lon -180 to 180); DEADLINE_EXCEEDED when the timeout runs out.
 
 .. py:method:: Prop.remove()
 
@@ -865,7 +869,7 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
 .. py:method:: Aircraft.set_sensor_pose(name, position, orientation=(0.0, 0.0, 0.0))
 
-   Set a sensor's mount pose. Only before start() (config window).
+   Set a sensor's mount pose. Only before start() (config window), and not on a crashed aircraft until stop().
 
    Session-only, like every sensor change made through the API: the vehicle's
    Sensors.xml is authored in the build panel or by hand and never written here,
@@ -876,10 +880,12 @@ Readings are the noisy sensor outputs. Reads require the simulation started; rec
 
    :param name: Sensor name.
    :param position: (x, y, z) in meters, aircraft origin frame.
-   :param orientation: (roll, pitch, yaw) in degrees (default no rotation).
+   :param orientation: (roll, pitch, yaw) in degrees, relative to its mount (a gimbal's head
+                       for a sensor on one); default no rotation.
 
-   :raises grpc.RpcError: NOT_FOUND if no sensor has that name,
-       FAILED_PRECONDITION if the sim has already started.
+   :raises grpc.RpcError: NOT_FOUND if no sensor has that name or the aircraft is gone,
+       FAILED_PRECONDITION if the sim has already started, or if the aircraft
+       crashed and the sim has not been stopped since.
 
 .. py:method:: Aircraft.set_sensor_param(name, *, enabled=None, update_hz=None, noise=None, logging=None, parent=None, **fields)
 
@@ -1426,6 +1432,11 @@ Values returned by the methods above. You do not construct these.
       :value: 5
 
       Its flight model cannot be trusted; the simulator's log says why.
+
+   .. py:attribute:: WATER
+      :value: 6
+
+      It went into water, which holds nothing up.
 
 .. py:class:: SimStatus
 
