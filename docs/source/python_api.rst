@@ -597,6 +597,20 @@ Aircraft management
 
    :returns: The stack now fitted.
 
+.. py:method:: Aircraft.set_draw_path(enabled, width_cm=None, color=None)
+
+   Draw this aircraft's travelled path as a trail, the outliner's Draw path.
+
+   The trail is cleared when the simulation starts, and a width or colour change redraws all of it.
+   Like the outliner's switch, it belongs to this aircraft for this session and is not written to its files.
+
+   :param enabled: Draw the trail while the simulation runs.
+   :param width_cm: Its width in cm, 0 or more; 0 draws a one-pixel line at any distance. None keeps the current one.
+   :param color: Linear (r, g, b), each from 0 to 1, e.g. (0.0, 0.5, 1.0). None keeps the current one.
+
+   :raises grpc.RpcError: NOT_FOUND when the aircraft is gone; INVALID_ARGUMENT for a width below 0 or a colour
+       channel outside 0 to 1.
+
 Props
 ^^^^^
 
